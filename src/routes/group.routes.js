@@ -7,13 +7,13 @@ const router = Router()
 
 //Product Routes
 router.route("/createGroup").post(
+    verifyJWT,
     upload.fields([
         {
             name: "banner",
             maxCount: 1
         }
-    ]),
-    verifyJWT, createGroup);
+    ]), createGroup);
 router.route("/addProduct").post(verifyJWT, addProductInGroup);
 router.route("/removeProduct").post(verifyJWT, removeProductFromGroup);
 
