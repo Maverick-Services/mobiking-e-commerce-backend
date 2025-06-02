@@ -59,9 +59,9 @@ app.get('/', (req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
     // logger.error(err);
+    console.log(err);
     if (err instanceof multer.MulterError) {
         // Multer-specific errors
-        console.log(err);
         return res
             .status(400)
             .json({ message: "Multer error", error: err.message });
