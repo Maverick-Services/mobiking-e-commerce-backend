@@ -1,0 +1,381 @@
+import { Category } from "../models/category.model.js";
+import { SubCategory } from "../models/sub_category.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+
+//Parent Ctegory
+const createCategory = asyncHandler(async (req, res) => {
+    const { name, slug, active } = req.body;
+
+    if (!name || !slug) {
+        throw new ApiError(400, "Details not found");
+    }
+
+    const upperBannerLocalPath = req.files?.upperBanner[0]?.path;
+    const lowerBannerLocalPath = req.files?.lowerBanner[0]?.path;
+    // const photosLocalPath = req.files?.photos[0];
+
+    // let coverImageLocalPath;
+    // if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+    //     coverImageLocalPath = req.files.coverImage[0].path
+    // }
+
+
+    // if (!upperBannerLocalPath || !lowerBannerLocalPath) {
+    //     throw new ApiError(400, "Avatar file is required")
+    // }
+
+    // const avatar = await uploadOnCloudinary(avatarLocalPath)
+    // const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    // if (!avatar) {
+    //     throw new ApiError(400, "Avatar file is required")
+    // }
+
+    const newCategory = await Category.create({
+        name,
+        slug,
+        active
+    });
+
+    if (!newCategory) {
+        throw new ApiError(409, "Could not create category");
+    }
+
+    return res.status(201).json(
+        new ApiResponse(201, newCategory, "Category created Successfully")
+    )
+});
+
+const editCategory = asyncHandler(async (req, res) => {
+    const { _id } = req.params;
+    const { name, slug, active } = req.body;
+
+    if (!_id || !name || !slug) {
+        throw new ApiError(400, "Details not found");
+    }
+
+    const foundCategory = await Category.findById(_id);
+    if (!foundCategory) {
+        throw new ApiError(409, `Category not found`);
+    }
+
+    const updatedCategory = await Category.findByIdAndUpdate(
+        { _id },
+        {
+            name,
+            slug,
+            active
+        },
+        { new: true }
+    ).populate("subCategories")
+        .exec();
+
+    if (!updatedCategory) {
+        throw new ApiError(409, "Could not update category");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedCategory, "Category updated Successfully")
+    )
+});
+
+const deleteCategory = asyncHandler(async (req, res) => {
+    const { _id } = req.params;
+
+    if (!_id) {
+        throw new ApiError(400, "Details not found");
+    }
+
+    const foundCategory = await Category.findById(_id);
+    if (!foundCategory) {
+        throw new ApiError(409, `Category not found`);
+    }
+
+    const deletedCategory = await Category.findByIdAndDelete(_id);
+
+    if (!deletedCategory) {
+        throw new ApiError(409, "Could not delete category");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, deletedCategory, "Category deleted Successfully")
+    )
+});
+
+const getAllCategories = asyncHandler(async (req, res) => {
+    const allCategories = await Category.find({}).populate("subCategories").exec();
+
+    if (!allCategories) {
+        throw new ApiError(409, "Could not find categories");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allCategories, "Categories fetched Successfully")
+    )
+});
+
+const getCategoryById = asyncHandler(async (req, res) => {
+    const completeCatgeoryDetails = await Category.findById(req?.params?._id).populate("subCategories").exec();
+
+    if (!completeCatgeoryDetails) {
+        throw new ApiError(409, "Could not fetch category details");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, completeCatgeoryDetails, "Category details fetched Successfully")
+    )
+});
+
+const getCategoryBySlug = asyncHandler(async (req, res) => {
+    const completeCatgeoryDetails = await Category.findOne({
+        slug: req?.params?.slug
+    }).populate("subCategories").exec();
+
+    if (!completeCatgeoryDetails) {
+        throw new ApiError(409, "Could not fetch category details");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, completeCatgeoryDetails, "Category details fetched Successfully")
+    )
+});
+
+
+//Sub categories
+const createSubCategory = asyncHandler(async (req, res) => {
+    const {
+        name, slug, active,
+        sequenceNo, featured,
+        deliveryCharge,
+        minOrderAmount,
+        minFreeDeliveryOrderAmount,
+        categoryId
+    } = req.body;
+
+    //Todo: Add Images, upper, lower banner in the subcategories
+
+    if (!name || !slug || !sequenceNo || !categoryId) {
+        throw new ApiError(400, "Details not found");
+    }
+
+    // Validate parent category Id
+    const foundCategory = await Category.findById(categoryId);
+    if (!foundCategory) {
+        throw new ApiError(409, `Parent category not found`);
+    }
+
+    const newSubCategory = await SubCategory.create({
+        name, slug, active,
+        sequenceNo, featured,
+        deliveryCharge,
+        minOrderAmount,
+        minFreeDeliveryOrderAmount,
+        parentCategory: categoryId
+    });
+
+    if (!newSubCategory) {
+        throw new ApiError(409, "Could not create sub category");
+    }
+
+    //add the subCategory in parent category
+    const updatedCategory = await Category.findByIdAndUpdate(
+        { _id: categoryId },
+        {
+            $push: {
+                subCategories: newSubCategory?._id
+            }
+        },
+        { new: true }
+    ).populate("subCategories").exec();
+    console.log("Parent Category: ", updatedCategory);
+
+    return res.status(201).json(
+        new ApiResponse(201, newSubCategory, "Sub category created Successfully")
+    )
+});
+
+const editSubCategory = asyncHandler(async (req, res) => {
+    const { _id } = req.params;
+    const {
+        name, slug, active,
+        sequenceNo, featured,
+        deliveryCharge,
+        minOrderAmount,
+        minFreeDeliveryOrderAmount,
+        categoryId
+    } = req.body;
+
+    //Todo: Add Images, upper, lower banner in the subcategories
+
+    if (!_id || !name || !slug || !sequenceNo || !categoryId) {
+        throw new ApiError(400, "Details not found");
+    }
+
+    // Validate parent category Id
+    const foundCategory = await Category.findById(categoryId);
+    if (!foundCategory) {
+        throw new ApiError(409, `Parent category not found`);
+    }
+
+    // Validate sub category Id
+    const foundSubCategory = await SubCategory.findById(_id);
+    if (!foundSubCategory) {
+        throw new ApiError(409, `Sub category not found`);
+    }
+
+    const updatedSubCategory = await SubCategory.findByIdAndUpdate(
+        { _id },
+        {
+            name, slug, active,
+            sequenceNo, featured,
+            deliveryCharge,
+            minOrderAmount,
+            minFreeDeliveryOrderAmount,
+            parentCategory: categoryId
+        },
+        { new: true }
+    ).populate("parentCategory products").exec();
+    if (!updatedSubCategory) {
+        throw new ApiError(409, "Could not update sub category");
+    }
+
+    // update parent category
+    if (foundSubCategory?.parentCategory !== updatedSubCategory?.parentCategory) {
+        //Remove subCategory in old parent category
+        const oldCategory = await Category.findByIdAndUpdate(
+            { _id: foundSubCategory?.parentCategory },
+            {
+                $pull: {
+                    subCategories: foundSubCategory?._id
+                }
+            },
+            { new: true }
+        ).populate("subCategories").exec();
+        console.log("Old Parent Category: ", oldCategory);
+
+        //add the subCategory in new parent category
+        const newCategory = await Category.findByIdAndUpdate(
+            { _id: updatedSubCategory?.parentCategory?._id },
+            {
+                $push: {
+                    subCategories: updatedSubCategory?._id
+                }
+            },
+            { new: true }
+        ).populate("subCategories").exec();
+        console.log("New Parent Category: ", newCategory);
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedSubCategory, "Sub Category updated Successfully")
+    )
+});
+
+const deleteSubCategory = asyncHandler(async (req, res) => {
+    const { _id } = req.params;
+
+    //Todo: Add Images, upper, lower banner in the subcategories
+
+    if (!_id) {
+        throw new ApiError(400, "Details not found");
+    }
+
+    // Validate sub category Id
+    const foundSubCategory = await SubCategory.findById(_id);
+    if (!foundSubCategory) {
+        throw new ApiError(409, `Sub category not found`);
+    }
+
+    const deletedSubCategory = await SubCategory.findByIdAndDelete(_id).populate("parentCategory products").exec();
+    if (!deletedSubCategory) {
+        throw new ApiError(409, "Could not delete sub category");
+    }
+    // console.log("Sub Category: ", deletedSubCategory);
+
+    //delete the subCategory in parent category
+    const updatedCategory = await Category.findByIdAndUpdate(
+        { _id: deletedSubCategory?.parentCategory?._id },
+        {
+            $pull: {
+                subCategories: deletedSubCategory?._id
+            }
+        },
+        { new: true }
+    ).populate("subCategories").exec();
+    console.log("Parent Category: ", updatedCategory);
+
+    return res.status(200).json(
+        new ApiResponse(200, deleteSubCategory, "Sub Category deleted Successfully")
+    )
+});
+
+const getAllSubCategories = asyncHandler(async (req, res) => {
+    const allSubCategories = await SubCategory.find({}).populate("parentCategory products").exec();
+
+    if (!allSubCategories) {
+        throw new ApiError(409, "Could not find sub categories");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allSubCategories, "Sub Categories fetched Successfully")
+    )
+});
+
+const getAllFeaturedSubCategories = asyncHandler(async (req, res) => {
+    const allFeaturedSubCategories = await SubCategory.find({
+        featured: true
+    }).populate("parentCategory products").exec();
+
+    if (!allFeaturedSubCategories) {
+        throw new ApiError(409, "Could not find featured sub categories");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allFeaturedSubCategories, "Featured Sub Categories fetched Successfully")
+    )
+});
+
+const getSubCategoryById = asyncHandler(async (req, res) => {
+    const completeSubCategoryDetails = await SubCategory.findById(req.params._id).populate("parentCategory").populate("products").exec();
+
+    if (!completeSubCategoryDetails) {
+        throw new ApiError(409, "Could not fetch sub category details");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, completeSubCategoryDetails, "Sub Category details fetched Successfully")
+    )
+});
+
+const getSubCategoryBySlug = asyncHandler(async (req, res) => {
+    const completeSubCategoryDetails = await SubCategory.findOne({
+        slug: req.params.slug
+    }).populate("parentCategory").populate("products").exec();
+
+    if (!completeSubCategoryDetails) {
+        throw new ApiError(409, "Could not fetch sub category details");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, completeSubCategoryDetails, "Sub Category details fetched Successfully")
+    )
+});
+
+
+export {
+    createCategory,
+    editCategory,
+    deleteCategory,
+    getAllCategories,
+    getCategoryById,
+    getCategoryBySlug,
+    createSubCategory,
+    editSubCategory,
+    deleteSubCategory,
+    getAllSubCategories,
+    getAllFeaturedSubCategories,
+    getSubCategoryById,
+    getSubCategoryBySlug
+}

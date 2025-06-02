@@ -1,0 +1,391 @@
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js"
+import { User } from "../models/user.model.js"
+import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken"
+import mongoose from "mongoose";
+import { ROLES } from "../constants.js";
+
+const generateAccessAndRefereshTokens = async (userId) => {
+    try {
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save({ validateBeforeSave: false })
+
+        return { accessToken, refreshToken }
+
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while generating referesh and access token")
+    }
+}
+
+const loginUser = asyncHandler(async (req, res) => {
+    const { role, email, phoneNo, password } = req.body;
+
+    if (!role) {
+        throw new ApiError(400, 'Role Not Found');
+    }
+
+    let user = null;
+    if (role === ROLES.USER) {
+        if (!phoneNo) {
+            throw new ApiError(400, 'Phone number not found');
+        }
+
+        user = await User.findOne({ phoneNo });
+        if (!user) {
+            user = await User.create({
+                phoneNo,
+                role
+            });
+        } else {
+            if (user?.role !== role) {
+                throw new ApiError(400, `Employee Account Registered with the phone number ${user?.phoneNo}`);
+            }
+        }
+
+    } else {
+        if (!email || !password) {
+            throw new ApiError(400, 'Phone number not found');
+        }
+        user = await User.findOne({ email });
+        if (!user) {
+            throw new ApiError(404, 'User not found');
+        }
+
+        const isPasswordValid = await user.isPasswordCorrect(password)
+        if (!isPasswordValid) {
+            throw new ApiError(401, "Invalid user credentials")
+        }
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(user?._id);
+
+    const loggedInUser = await User.findById(user?._id).select("-password -refreshToken")
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    user: loggedInUser, accessToken, refreshToken
+                },
+                "User logged In Successfully"
+            )
+        )
+
+})
+
+const logoutUser = asyncHandler(async (req, res) => {
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $unset: {
+                refreshToken: 1 // this removes the field from document
+            }
+        },
+        {
+            new: true
+        }
+    )
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(new ApiResponse(200, {}, "User logged Out"))
+})
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+    if (!incomingRefreshToken) {
+        throw new ApiError(401, "Unauthorized request")
+    }
+
+    try {
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        )
+
+        const user = await User.findById(decodedToken?._id)
+
+        if (!user) {
+            throw new ApiError(401, "Invalid refresh token")
+        }
+
+        if (incomingRefreshToken !== user?.refreshToken) {
+            throw new ApiError(401, "Refresh token is expired or used")
+
+        }
+
+        const options = {
+            httpOnly: true,
+            secure: true
+        }
+
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefereshTokens(user._id)
+
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", newRefreshToken, options)
+            .json(
+                new ApiResponse(
+                    200,
+                    { accessToken, refreshToken: newRefreshToken },
+                    "Access token refreshed"
+                )
+            )
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token")
+    }
+
+})
+
+const createEmployee = asyncHandler(async (req, res) => {
+    // get user details from frontend
+    // validation - not empty
+    // check if user already exists: username, email
+    // check for images, check for avatar
+    // upload them to cloudinary, avatar
+    // create user object - create entry in db
+    // remove password and refresh token field from response
+    // check for user creation
+    // return res
+
+    const { name, email, phoneNo, password, role, permissions, departments } = req.body
+    //console.log("email: ", email);
+
+    if (
+        [name, email, phoneNo, password, role].some((field) => field?.trim() === "")
+    ) {
+        throw new ApiError(400, "All fields are required")
+    }
+
+    if (role === ROLES.EMPLOYEE && (!permissions || !(departments))) {
+        throw new ApiError(400, "Permissions and departments required for employee")
+    }
+
+    const existedUser = await User.findOne({
+        $or: [{ phoneNo }, { email }]
+    })
+
+    // console.log(existedUser);
+    if (existedUser) {
+        throw new ApiError(409, "User with email or phone number already exists")
+    }
+    //console.log(req.files);
+
+    // const avatarLocalPath = req.files?.avatar[0]?.path;
+    //const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+    // let coverImageLocalPath;
+    // if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+    //     coverImageLocalPath = req.files.coverImage[0].path
+    // }
+
+
+    // if (!avatarLocalPath) {
+    //     throw new ApiError(400, "Avatar file is required")
+    // }
+
+    // const avatar = await uploadOnCloudinary(avatarLocalPath)
+    // const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    // if (!avatar) {
+    //     throw new ApiError(400, "Avatar file is required")
+    // }
+
+
+    const user = await User.create({
+        name,
+        email,
+        phoneNo,
+        password,
+        departments,
+        permissions,
+        role
+        // avatar: avatar.url,
+        // coverImage: coverImage?.url || "",
+    })
+
+    const createdUser = await User.findById(user._id).select(
+        "-password -refreshToken"
+    )
+
+    if (!createdUser) {
+        throw new ApiError(500, "Something went wrong while registering the user")
+    }
+
+    return res.status(201).json(
+        new ApiResponse(201, createdUser, "User registered Successfully")
+    )
+
+})
+
+const editEmployee = asyncHandler(async (req, res) => {
+    // const { _id } = req.user;
+    const { _id } = req.params;
+    const { name, email, phoneNo, role, permissions, departments } = req.body
+
+    if (
+        [name, email, phoneNo, role].some((field) => field?.trim() === "")
+    ) {
+        throw new ApiError(400, "All fields are required")
+    }
+
+    if (role === ROLES.EMPLOYEE && (!permissions || !(departments))) {
+        throw new ApiError(400, "Permissions and departments required for employee")
+    }
+
+    //console.log(req.files);
+
+    // const avatarLocalPath = req.files?.avatar[0]?.path;
+    //const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+    // let coverImageLocalPath;
+    // if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+    //     coverImageLocalPath = req.files.coverImage[0].path
+    // }
+
+
+    // if (!avatarLocalPath) {
+    //     throw new ApiError(400, "Avatar file is required")
+    // }
+
+    // const avatar = await uploadOnCloudinary(avatarLocalPath)
+    // const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    // if (!avatar) {
+    //     throw new ApiError(400, "Avatar file is required")
+    // }
+
+
+    const updatedUser = await User.findByIdAndUpdate(
+        { _id },
+        {
+            name,
+            email,
+            phoneNo,
+            departments,
+            permissions,
+            role
+            // avatar: avatar.url,
+            // coverImage: coverImage?.url || "",
+        },
+        { new: true }
+    ).select(
+        "-password -refreshToken"
+    )
+
+    if (!updatedUser) {
+        throw new ApiError(500, "Something went wrong while updating the user")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedUser, "User Updated Successfully")
+    )
+
+})
+
+const deleteEmployee = asyncHandler(async (req, res) => {
+    // const { _id } = req.user;
+    const { _id } = req.params;
+
+    // if (role === ROLES.EMPLOYEE && (!permissions || !(departments))) {
+    //     throw new ApiError(400, "Permissions and departments required for employee")
+    // }
+
+    //console.log(req.files);
+
+    // const avatarLocalPath = req.files?.avatar[0]?.path;
+    //const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+    // let coverImageLocalPath;
+    // if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+    //     coverImageLocalPath = req.files.coverImage[0].path
+    // }
+
+
+    // if (!avatarLocalPath) {
+    //     throw new ApiError(400, "Avatar file is required")
+    // }
+
+    // const avatar = await uploadOnCloudinary(avatarLocalPath)
+    // const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    // if (!avatar) {
+    //     throw new ApiError(400, "Avatar file is required")
+    // }
+
+
+    const deletedUser = await User.findByIdAndDelete(
+        { _id }
+    ).select(
+        "-password -refreshToken"
+    )
+
+    if (!deletedUser) {
+        throw new ApiError(500, "Something went wrong while deleting the user")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, deletedUser, "User Deleted Successfully")
+    )
+
+})
+
+const getUsersByRole = asyncHandler(async (req, res) => {
+    const allUsers = await User.find({
+        role: req.params.role
+    }).populate("orders").exec();
+
+    if (!allUsers) {
+        throw new ApiError(409, "Could not find users");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allUsers, "Users fetched Successfully")
+    )
+})
+
+const getUserById = asyncHandler(async (req, res) => {
+    const completeUserDetails = await User.findById(req?.params?._id).populate("orders").exec();
+
+    if (!completeUserDetails) {
+        throw new ApiError(409, "Could not fetch user details");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, completeUserDetails, "User details fetched Successfully")
+    )
+});
+
+export {
+    loginUser,
+    logoutUser,
+    refreshAccessToken,
+    createEmployee,
+    editEmployee,
+    deleteEmployee,
+    getUsersByRole,
+    getUserById
+}
