@@ -3,6 +3,7 @@ import { SubCategory } from "../models/sub_category.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 //Parent Ctegory
 const createCategory = asyncHandler(async (req, res) => {
@@ -11,27 +12,6 @@ const createCategory = asyncHandler(async (req, res) => {
     if (!name || !slug) {
         throw new ApiError(400, "Details not found");
     }
-
-    const upperBannerLocalPath = req.files?.upperBanner[0]?.path;
-    const lowerBannerLocalPath = req.files?.lowerBanner[0]?.path;
-    // const photosLocalPath = req.files?.photos[0];
-
-    // let coverImageLocalPath;
-    // if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
-    //     coverImageLocalPath = req.files.coverImage[0].path
-    // }
-
-
-    // if (!upperBannerLocalPath || !lowerBannerLocalPath) {
-    //     throw new ApiError(400, "Avatar file is required")
-    // }
-
-    // const avatar = await uploadOnCloudinary(avatarLocalPath)
-    // const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-
-    // if (!avatar) {
-    //     throw new ApiError(400, "Avatar file is required")
-    // }
 
     const newCategory = await Category.create({
         name,
@@ -166,9 +146,41 @@ const createSubCategory = asyncHandler(async (req, res) => {
         throw new ApiError(409, `Parent category not found`);
     }
 
+
+    const upperBannerLocalPath = req.files?.upperBanner[0]?.path;
+    const lowerBannerLocalPath = req.files?.lowerBanner[0]?.path;
+
+    if (!upperBannerLocalPath || !lowerBannerLocalPath) {
+        throw new ApiError(400, "Avatar file is required")
+    }
+
+    const upperBanner = await uploadOnCloudinary(upperBannerLocalPath)
+    const lowerBanner = await uploadOnCloudinary(lowerBannerLocalPath)
+    // console.log(photosLocalPath);
+
+    let photos = [];
+
+    if (Array.isArray(req.files?.photos) && req.files.photos.length > 0) {
+        const uploadPromises = req.files.photos.map(async (fl) => {
+            const filePath = fl?.path;
+            const photo = await uploadOnCloudinary(filePath);
+            return photo;
+        });
+
+        photos = await Promise.all(uploadPromises); // ✅ Wait for all uploads
+        photos = photos?.map(ph => ph?.secure_url);
+    }
+
+    if (!upperBanner || !lowerBanner) {
+        throw new ApiError(400, "Upper and lower banners are required")
+    }
+
     const newSubCategory = await SubCategory.create({
         name, slug, active,
         sequenceNo, featured,
+        upperBanner: upperBanner?.secure_url,
+        lowerBanner: lowerBanner?.secure_url,
+        photos: photos ? photos : [],
         deliveryCharge,
         minOrderAmount,
         minFreeDeliveryOrderAmount,

@@ -4,6 +4,7 @@ import { SubCategory } from "../models/sub_category.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const createProduct = asyncHandler(async (req, res) => {
     const {
@@ -31,12 +32,26 @@ const createProduct = asyncHandler(async (req, res) => {
     //create selling price
     const sellingPrice = [{ price }]
 
+    let images = [];
+
+    if (Array.isArray(req.files?.images) && req.files.images.length > 0) {
+        const uploadPromises = req.files.images.map(async (fl) => {
+            const filePath = fl?.path;
+            const image = await uploadOnCloudinary(filePath);
+            return image;
+        });
+
+        images = await Promise.all(uploadPromises); // ✅ Wait for all uploads
+        images = images?.map(ph => ph?.secure_url);
+    }
+
     //create new product
     const newProduct = await Product.create({
         name, fullName, description,
         slug, active,
         sellingPrice,
-        category: categoryId
+        category: categoryId,
+        images: images ? images : [],
     });
     if (!newProduct) {
         throw new ApiError(409, "Could not create product");
@@ -121,7 +136,7 @@ const updateProductStock = asyncHandler(async (req, res) => {
             stock: existingProduct.stock
         },
         { new: true }
-    ).populate("category stock orders groups").exec();
+    ).populate("category stock groups").exec(); //populate orders
 
     return res.status(201).json(
         new ApiResponse(201, updatedProduct, "Product stock updated successfully")
@@ -175,7 +190,7 @@ const editProduct = asyncHandler(async (req, res) => {
             category: categoryId
         },
         { new: true }
-    ).populate("category stock").exec(); //populate order, group here
+    ).populate("category stock groups").exec(); //populate order, group here
     if (!updatedProduct) {
         throw new ApiError(409, "Could not update product");
     }
@@ -220,7 +235,19 @@ const getAllProducts = asyncHandler(async (req, res) => { });
 const getProductsByCategory = asyncHandler(async (req, res) => { });
 const getProductsByGroup = asyncHandler(async (req, res) => { });
 const getProductById = asyncHandler(async (req, res) => { });
-const getProductBySlug = asyncHandler(async (req, res) => { });
+const getProductBySlug = asyncHandler(async (req, res) => {
+    const completeProductDetails = await Product.findOne({
+        slug: req.params.slug
+    }).populate("category stock groups").exec();
+
+    if (!completeProductDetails) {
+        throw new ApiError(409, "Could not fetch product details");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, completeProductDetails, "Product details fetched Successfully")
+    )
+});
 
 export {
     createProduct,

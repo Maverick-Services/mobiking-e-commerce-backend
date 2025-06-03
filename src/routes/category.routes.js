@@ -16,9 +16,8 @@ router.route("/createCategory").post(verifyJWT, createCategory);
 router.route("/:_id").put(verifyJWT, editCategory);
 router.route("/:_id").delete(verifyJWT, deleteCategory);
 router.route("/").get(getAllCategories);
-router.route("/").get(getAllSubCategories);
-router.route("/categoryDetails/:_id").get(verifyJWT, getCategoryById);
-router.route("/categoryDetails/:slug").get(getCategoryBySlug);
+router.route("/:_id").get(verifyJWT, getCategoryById);
+router.route("/details/:slug").get(getCategoryBySlug);
 
 //Sub Category Routes
 router.route("/createSubCategory").post(verifyJWT,
@@ -42,6 +41,6 @@ router.route("/subCategories/:_id").delete(verifyJWT, deleteSubCategory);
 router.route("/subCategories").get(getAllSubCategories);
 router.route("/subCategories/featured").get(getAllFeaturedSubCategories);
 router.route("/subCategories/:_id").get(verifyJWT, getSubCategoryById);
-router.route("/subCategories/:slug").get(getSubCategoryBySlug);
+router.route("/subCategories/details/:slug").get(getSubCategoryBySlug);
 
 export default router
