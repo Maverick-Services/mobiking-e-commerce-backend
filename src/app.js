@@ -22,6 +22,7 @@ import userRouter from './routes/user.routes.js'
 import categoryRouter from './routes/category.routes.js'
 import productRouter from './routes/product.routes.js'
 import groupRouter from './routes/group.routes.js'
+import homeRouter from './routes/home.routes.js'
 import multer from "multer"
 import { ApiError } from "./utils/ApiError.js"
 // import healthcheckRouter from "./routes/healthcheck.routes.js"
@@ -38,6 +39,7 @@ app.use("/api/v1/users", userRouter)
 app.use("/api/v1/categories", categoryRouter)
 app.use("/api/v1/products", productRouter)
 app.use("/api/v1/groups", groupRouter)
+app.use("/api/v1/home", homeRouter)
 // app.use("/api/v1/healthcheck", healthcheckRouter)
 // app.use("/api/v1/tweets", tweetRouter)
 // app.use("/api/v1/subscriptions", subscriptionRouter)

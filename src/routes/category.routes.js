@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import {
-    createCategory, createSubCategory, deleteCategory, deleteSubCategory, editCategory, editSubCategory, getAllCategories, getAllFeaturedSubCategories, getAllSubCategories,
-    getCategoryById,
-    getCategoryBySlug,
-    getSubCategoryById,
-    getSubCategoryBySlug
+    createCategory, createSubCategory, deleteCategory,
+    deleteSubCategory, editCategory, editSubCategory,
+    getAllCategories, getAllFeaturedSubCategories, getAllSubCategories,
+    getCategoryById, getCategoryBySlug,
+    getSubCategoryById, getSubCategoryBySlug
 } from "../controllers/category.controller.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 
@@ -16,7 +16,7 @@ router.route("/createCategory").post(verifyJWT, createCategory);
 router.route("/:_id").put(verifyJWT, editCategory);
 router.route("/:_id").delete(verifyJWT, deleteCategory);
 router.route("/").get(getAllCategories);
-router.route("/:_id").get(verifyJWT, getCategoryById);
+router.route("/details/:_id").get(verifyJWT, getCategoryById);
 router.route("/details/:slug").get(getCategoryBySlug);
 
 //Sub Category Routes
@@ -40,7 +40,7 @@ router.route("/subCategories/:_id").put(verifyJWT, editSubCategory);
 router.route("/subCategories/:_id").delete(verifyJWT, deleteSubCategory);
 router.route("/subCategories").get(getAllSubCategories);
 router.route("/subCategories/featured").get(getAllFeaturedSubCategories);
-router.route("/subCategories/:_id").get(verifyJWT, getSubCategoryById);
+router.route("/subCategories/details/:_id").get(verifyJWT, getSubCategoryById);
 router.route("/subCategories/details/:slug").get(getSubCategoryBySlug);
 
 export default router
