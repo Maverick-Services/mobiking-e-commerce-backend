@@ -5,9 +5,12 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const createHome = asyncHandler(async (req, res) => {
-    const { groups, active } = req.body;
+    let { groups, active } = req.body;
 
     //Validate details
+    if (groups)
+        groups = JSON.parse(groups);
+
     if (
         !groups && !groups.length
     ) {
@@ -27,22 +30,28 @@ const createHome = asyncHandler(async (req, res) => {
         banners = banners?.map(ph => ph?.secure_url);
     }
 
-    console.log(banners);
-    // if (!banners || !banners?.length) {
-    //     throw new ApiError(400, "Banners are Required");
-    // }
+    if (!banners || !banners?.length) {
+        throw new ApiError(400, "Banners are Required");
+    }
 
     //create new product
     const newHomeLayout = await Home.create({
         active,
-        banners,
-        groups: groups ? groups : []
+        banners
     });
     if (!newHomeLayout) {
         throw new ApiError(409, "Could not create home layout");
     }
 
-    const homeLayout = await Home.findById(newHomeLayout?._id)
+    const homeLayout = await Home.findByIdAndUpdate(
+        newHomeLayout?._id,
+        {
+            $push: {
+                groups: groups
+            }
+        },
+        { new: true }
+    )
         .populate('groups')
         .populate({
             path: 'groups',
