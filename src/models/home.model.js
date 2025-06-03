@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 
 const homeSchema = new mongoose.Schema({
+    active: {
+        type: Boolean,
+        default: true
+    },
     banners: [{
         type: String,
         required: true

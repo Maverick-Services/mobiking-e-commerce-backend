@@ -7,6 +7,10 @@ const catgeorySchema = new mongoose.Schema({
         required: true,
         unique: [true, "Name already exist"]
     },
+    image: {
+        type: String,
+        required: true,
+    },
     slug: {
         type: String,
         lowercase: true,

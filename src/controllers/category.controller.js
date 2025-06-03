@@ -13,9 +13,20 @@ const createCategory = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Details not found");
     }
 
+    const imageLocalPath = req.files?.image[0]?.path;
+
+    if (!imageLocalPath) {
+        throw new ApiError(400, "Image is required")
+    }
+    const image = await uploadOnCloudinary(imageLocalPath)
+    if (!image) {
+        throw new ApiError(400, "Image is required")
+    }
+
     const newCategory = await Category.create({
         name,
         slug,
+        image: image?.secure_url,
         active
     });
 
