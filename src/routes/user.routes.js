@@ -14,7 +14,7 @@ import { upload } from "../middlewares/multer.middlewares.js";
 
 const router = Router()
 
-router.route("/createEmployee").post(verifyJWT,
+router.route("/createUser").post(verifyJWT,
     upload.fields([
         {
             name: "profilePicture",
