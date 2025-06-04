@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { cartSchema } from './cart.model.js';
+import { itemsSchema } from './cart.model.js';
 
 const orderSchema = new mongoose.Schema({
 
@@ -60,7 +60,7 @@ const orderSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    items: [cartSchema]
+    items: [itemsSchema]
 
 }, { timestamps: true });
 

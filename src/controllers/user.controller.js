@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import { ROLES } from "../constants.js";
+import { Cart } from "../models/cart.model.js";
 
 const generateAccessAndRefereshTokens = async (userId) => {
     try {
@@ -34,12 +35,24 @@ const loginUser = asyncHandler(async (req, res) => {
             throw new ApiError(400, 'Phone number not found');
         }
 
-        user = await User.findOne({ phoneNo });
+        user = await User.findOne({ phoneNo }).populate('wishlist cart').exec();
         if (!user) {
             user = await User.create({
                 phoneNo,
                 role
             });
+
+            const newCart = await Cart.create({
+                userId: user?._id,
+            });
+
+            user = await User.findByIdAndUpdate(
+                user?._id,
+                {
+                    cart: newCart?._id
+                },
+                { new: true }
+            ).populate('wishlist cart').exec(); //populate orders
         } else {
             if (user?.role !== role) {
                 throw new ApiError(400, `Employee Account Registered with the phone number ${user?.phoneNo}`);
@@ -53,6 +66,10 @@ const loginUser = asyncHandler(async (req, res) => {
         user = await User.findOne({ email });
         if (!user) {
             throw new ApiError(404, 'User not found');
+        }
+
+        if (user?.role === ROLES.USER) {
+            throw new ApiError(400, `Customer Account Registered with this email`);
         }
 
         const isPasswordValid = await user.isPasswordCorrect(password)
@@ -355,7 +372,8 @@ const deleteEmployee = asyncHandler(async (req, res) => {
 const getUsersByRole = asyncHandler(async (req, res) => {
     const allUsers = await User.find({
         role: req.params.role
-    }).populate("orders").exec();
+    })
+    // .populate("orders").exec();
 
     if (!allUsers) {
         throw new ApiError(409, "Could not find users");

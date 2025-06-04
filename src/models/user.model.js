@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { cartSchema } from './cart.model.js';
 
 const permissionSchema = new mongoose.Schema({
     view: { type: Boolean, default: false },
@@ -64,8 +63,10 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product'
     }],
-    cart: [cartSchema]
-
+    cart: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Cart'
+    }
 }, { timestamps: true });
 
 userSchema.pre("save", async function (next) {
