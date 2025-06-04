@@ -1,6 +1,8 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import multer from "multer"
+import { ApiError } from "./utils/ApiError.js"
 
 const app = express()
 
@@ -23,16 +25,7 @@ import categoryRouter from './routes/category.routes.js'
 import productRouter from './routes/product.routes.js'
 import groupRouter from './routes/group.routes.js'
 import homeRouter from './routes/home.routes.js'
-import multer from "multer"
-import { ApiError } from "./utils/ApiError.js"
-// import healthcheckRouter from "./routes/healthcheck.routes.js"
-// import tweetRouter from "./routes/tweet.routes.js"
-// import subscriptionRouter from "./routes/subscription.routes.js"
-// import videoRouter from "./routes/video.routes.js"
-// import commentRouter from "./routes/comment.routes.js"
-// import likeRouter from "./routes/like.routes.js"
-// import playlistRouter from "./routes/playlist.routes.js"
-// import dashboardRouter from "./routes/dashboard.routes.js"
+import cartRouter from './routes/cart.routes.js'
 
 //routes declaration
 app.use("/api/v1/users", userRouter)
@@ -40,16 +33,7 @@ app.use("/api/v1/categories", categoryRouter)
 app.use("/api/v1/products", productRouter)
 app.use("/api/v1/groups", groupRouter)
 app.use("/api/v1/home", homeRouter)
-// app.use("/api/v1/healthcheck", healthcheckRouter)
-// app.use("/api/v1/tweets", tweetRouter)
-// app.use("/api/v1/subscriptions", subscriptionRouter)
-// app.use("/api/v1/videos", videoRouter)
-// app.use("/api/v1/comments", commentRouter)
-// app.use("/api/v1/likes", likeRouter)
-// app.use("/api/v1/playlist", playlistRouter)
-// app.use("/api/v1/dashboard", dashboardRouter)
-
-// http://localhost:8000/api/v1/users/register
+app.use("/api/v1/cart", cartRouter)
 
 app.get('/', (req, res) => {
     res.json({

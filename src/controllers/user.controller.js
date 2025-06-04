@@ -39,7 +39,8 @@ const loginUser = asyncHandler(async (req, res) => {
         if (!user) {
             user = await User.create({
                 phoneNo,
-                role
+                role,
+                email: phoneNo
             });
 
             const newCart = await Cart.create({
@@ -63,7 +64,7 @@ const loginUser = asyncHandler(async (req, res) => {
         if (!email || !password) {
             throw new ApiError(400, 'Phone number not found');
         }
-        user = await User.findOne({ email });
+        user = await User.findOne({ email: email ? email : "" });
         if (!user) {
             throw new ApiError(404, 'User not found');
         }
