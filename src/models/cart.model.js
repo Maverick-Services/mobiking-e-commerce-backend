@@ -27,6 +27,11 @@ const cartSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    totalCartValue: {
+        type: Number,
+        required: true,
+        default: 0
+    },
     items: [itemsSchema]
 }, { timestamps: true });
 

@@ -35,7 +35,19 @@ const loginUser = asyncHandler(async (req, res) => {
             throw new ApiError(400, 'Phone number not found');
         }
 
-        user = await User.findOne({ phoneNo }).populate('wishlist cart').exec();
+        user = await User.findOne({
+            phoneNo
+        }).populate({
+            path: "cart",
+            populate: {
+                path: "items.productId",
+                model: "Product"
+            }
+        })
+            .populate("wishlist")
+            .exec();
+        //populate orders
+
         if (!user) {
             user = await User.create({
                 phoneNo,
@@ -53,7 +65,17 @@ const loginUser = asyncHandler(async (req, res) => {
                     cart: newCart?._id
                 },
                 { new: true }
-            ).populate('wishlist cart').exec(); //populate orders
+            ).populate({
+                path: "cart",
+                populate: {
+                    path: "items.productId",
+                    model: "Product"
+                }
+            })
+                .populate("wishlist")
+                .exec();
+            //populate orders
+
         } else {
             if (user?.role !== role) {
                 throw new ApiError(400, `Employee Account Registered with the phone number ${user?.phoneNo}`);
@@ -81,7 +103,17 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(user?._id);
 
-    const loggedInUser = await User.findById(user?._id).select("-password -refreshToken")
+    const loggedInUser = await User.findById(user?._id)
+        .select("-password -refreshToken")
+        .populate({
+            path: "cart",
+            populate: {
+                path: "items.productId",
+                model: "Product"
+            }
+        })
+        .populate("wishlist")
+        .exec();
 
     const options = {
         httpOnly: true,

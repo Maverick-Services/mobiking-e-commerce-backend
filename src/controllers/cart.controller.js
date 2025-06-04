@@ -10,85 +10,203 @@ const addProductInCart = asyncHandler(async (req, res) => {
         cartId,
         productId,
         variantName,
-        quantity,
-        price
+        quantity // optional now
     } = req.body;
 
-    // Validate input
-    if (
-        !cartId ||
-        !productId ||
-        !variantName ||
-        !quantity ||
-        !price
-    ) {
-        throw new ApiError(400, "Details not found");
-    }
-
+    // Parse quantity or default to 1
     const parsedQuantity = parseInt(quantity);
-    if (isNaN(parsedQuantity) || parsedQuantity < 0) {
-        throw new ApiError(400, "Quantity must be a valid number");
+    const qtyToAdd = (!quantity || isNaN(parsedQuantity) || parsedQuantity <= 0) ? 1 : parsedQuantity;
+
+    if (!cartId || !productId || !variantName) {
+        throw new ApiError(400, "cartId, productId, and variantName are required");
     }
 
-    // Check if product exists
-    const existingProduct = await Product.findById(productId)
-        .populate("category stock").exec(); //populate order, group here
+    // 1. Fetch product with category
+    const product = await Product.findById(productId)
+        .populate("category")
+        .exec();
 
-    if (!existingProduct) {
-        throw new ApiError(409, "Product not found");
+    if (!product) {
+        throw new ApiError(404, "Product not found");
     }
 
-    // Check if cart exists
-    const existingCart = await Cart.findById(cartId)
-        .populate("userId").exec(); //populate order, group here
-
-    if (!existingCart) {
-        throw new ApiError(409, "Cart not found");
+    const availableVariantStock = product.variants.get(variantName);
+    if (availableVariantStock === undefined) {
+        throw new ApiError(400, "Selected variant does not exist");
     }
 
-    let items = existingCart?.items;
-    if (items.length > 0 && items?.filter(it => it?.productId == productId && it?.variantName == variantName).length > 0) {
-        console.log("Item Found: ", items?.map(it => ({ ...it, variantName: 'blue' })));
-        items = items?.map(it => {
-            if (it?.productId == productId && it?.variantName == variantName) {
-                // it = {
-                //     ...it,
-                //     quantity,
-                //     price
-                // }
-            }
-            return it;
-        })
+    const latestPrice = product.sellingPrice?.[product.sellingPrice.length - 1]?.price;
+    if (!latestPrice || isNaN(latestPrice)) {
+        throw new ApiError(400, "No valid price found for product");
+    }
+
+    // 2. Check if cart exists or create
+    let cart = await Cart.findById(cartId);
+    if (!cart) {
+        cart = await Cart.create({
+            _id: cartId,
+            userId: req.user._id,
+            items: []
+        });
+    }
+
+    let items = cart.items || [];
+    const existingIndex = items.findIndex(
+        item =>
+            item.productId.toString() === productId &&
+            item.variantName === variantName
+    );
+
+    if (existingIndex !== -1) {
+        // Item exists — increment quantity
+        const currentQty = items[existingIndex].quantity;
+        const newQty = currentQty + qtyToAdd;
+
+        if (newQty > availableVariantStock) {
+            throw new ApiError(400, `Only ${availableVariantStock} units available for ${variantName}`);
+        }
+
+        items[existingIndex] = {
+            ...items[existingIndex].toObject(),
+            quantity: newQty,
+            price: latestPrice // sync to latest price
+        };
     } else {
+        // Add new item
+        if (qtyToAdd > availableVariantStock) {
+            throw new ApiError(400, `Only ${availableVariantStock} units available for ${variantName}`);
+        }
+
         items.push({
             productId,
             variantName,
-            quantity,
-            price
-        })
+            quantity: qtyToAdd,
+            price: latestPrice
+        });
     }
 
-    // Create new stock entry
-    const updatedCart = await Cart.findByIdAndUpdate(
-        cartId,
-        {
-            items
-        },
-        { new: true }
-    );
+    // 3. Save updated cart
+    cart.items = items;
 
+    // Recalculate total cart value
+    cart.totalCartValue = items.reduce((total, item) => {
+        return total + item.quantity * item.price;
+    }, 0);
+
+    const updatedCart = await cart.save();
     if (!updatedCart) {
-        throw new ApiError(409, "Could not add Items to cart");
+        throw new ApiError(500, "Failed to update cart");
     }
 
-    const updatedUser = await User.findById(req?.user?._id)
-        .populate("cart wishlist").exec(); //populate orders
+    // 4. Populate user with product details
+    const updatedUser = await User.findById(req.user._id)
+        .select('-password -refreshToken')
+        .populate({
+            path: "cart",
+            populate: {
+                path: "items.productId",
+                model: "Product"
+            }
+        })
+        .populate("wishlist")
+        .exec();
 
     return res.status(201).json(
-        new ApiResponse(201, updatedUser, "Product added successfully")
+        new ApiResponse(201, {
+            user: updatedUser
+        }, "Product added to cart successfully")
+    );
+});
+
+const removeProductFromCart = asyncHandler(async (req, res) => {
+    const { cartId, productId, variantName } = req.body;
+
+    if (!cartId || !productId || !variantName) {
+        throw new ApiError(400, "cartId, productId, and variantName are required");
+    }
+
+    // 1. Fetch the cart
+    const cart = await Cart.findById(cartId);
+    if (!cart) {
+        throw new ApiError(404, "Cart not found");
+    }
+
+    const items = cart.items || [];
+
+    const index = items.findIndex(
+        item =>
+            item.productId.toString() === productId &&
+            item.variantName === variantName
+    );
+
+    if (index === -1) {
+        throw new ApiError(404, "Item not found in cart");
+    }
+
+    // 2. Fetch product to get latest price (for consistency)
+    const product = await Product.findById(productId);
+    if (!product) {
+        throw new ApiError(404, "Product not found");
+    }
+
+    const latestPrice = product.sellingPrice?.[product.sellingPrice.length - 1]?.price;
+    if (!latestPrice || isNaN(latestPrice)) {
+        throw new ApiError(400, "Invalid product price");
+    }
+
+    // 3. Decrement quantity or remove if 1
+    if (items[index].quantity > 1) {
+        items[index].quantity -= 1;
+        items[index].price = latestPrice; // Sync latest price
+    } else {
+        items.splice(index, 1); // Remove if quantity is now 0
+    }
+
+    // 4. Save updated cart
+    cart.items = items;
+
+    // Recalculate total cart value
+    cart.totalCartValue = items.reduce((total, item) => {
+        return total + item.quantity * item.price;
+    }, 0);
+
+    let updatedCart = await cart.save();
+
+    if (!updatedCart) {
+        throw new ApiError(500, "Failed to update cart");
+    }
+
+    // 5. Populate user with cart and product details
+    const updatedUser = await User.findById(req.user._id)
+        .select('-password -refreshToken')
+        .populate({
+            path: "cart",
+            populate: {
+                path: "items.productId",
+                model: "Product"
+            }
+        })
+        .populate("wishlist")
+        .exec();
+
+    // 6. Recalculate total cart value
+    const totalCartValue = updatedUser.cart.items.reduce((total, item) => {
+        return total + item.quantity * item.price;
+    }, 0);
+
+    updatedCart.items = items;
+    updatedCart.totalCartValue = totalCartValue;
+    updatedCart = await updatedCart.save();
+
+    return res.status(200).json(
+        new ApiResponse(200, {
+            user: updatedUser,
+            // totalCartValue
+        }, "Product removed from cart successfully")
     );
 });
 
 export {
-    addProductInCart
+    addProductInCart,
+    removeProductFromCart
 }
