@@ -10,7 +10,7 @@ import {
     refreshAccessToken
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
-import { upload } from "../middlewares/multer.middlewares.js";
+import { addProductInWishList, removeProductFromWishList } from "../controllers/wishlist.controller.js";
 
 const router = Router()
 
@@ -22,5 +22,9 @@ router.route("/employees/:_id").put(verifyJWT, editEmployee);
 router.route("/employees/:_id").delete(verifyJWT, deleteEmployee);
 router.route("/role/:role").get(verifyJWT, getUsersByRole);
 router.route("/:_id").get(verifyJWT, getUserById);
+
+//Whishlist Routes
+router.route("/wishlist/add").post(verifyJWT, addProductInWishList);
+router.route("/wishlist/remove").post(verifyJWT, removeProductFromWishList);
 
 export default router
