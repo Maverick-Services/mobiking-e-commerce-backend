@@ -7,26 +7,26 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 //Parent Ctegory
 const createCategory = asyncHandler(async (req, res) => {
-    const { name, slug, active } = req.body;
+    const { name, slug, active, image } = req.body;
 
     if (!name || !slug) {
         throw new ApiError(400, "Details not found");
     }
 
-    const imageLocalPath = req.files?.image[0]?.path;
+    // const imageLocalPath = req.files?.image[0]?.path;
 
-    if (!imageLocalPath) {
-        throw new ApiError(400, "Image is required")
-    }
-    const image = await uploadOnCloudinary(imageLocalPath)
-    if (!image) {
-        throw new ApiError(400, "Image is required")
-    }
+    // if (!imageLocalPath) {
+    //     throw new ApiError(400, "Image is required")
+    // }
+    // const image = await uploadOnCloudinary(imageLocalPath)
+    // if (!image) {
+    //     throw new ApiError(400, "Image is required")
+    // }
 
     const newCategory = await Category.create({
         name,
         slug,
-        image: image?.secure_url,
+        image,
         active
     });
 

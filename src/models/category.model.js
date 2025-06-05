@@ -9,7 +9,7 @@ const catgeorySchema = new mongoose.Schema({
     },
     image: {
         type: String,
-        required: true,
+        // required: true,
     },
     slug: {
         type: String,

@@ -12,14 +12,7 @@ import { upload } from "../middlewares/multer.middlewares.js";
 const router = Router()
 
 //Category Routes
-router.route("/createCategory").post(verifyJWT,
-    upload.fields([
-        {
-            name: "image",
-            maxCount: 1
-        },
-    ]),
-    createCategory);
+router.route("/createCategory").post(verifyJWT, createCategory);
 router.route("/:_id").put(verifyJWT, editCategory);
 router.route("/:_id").delete(verifyJWT, deleteCategory);
 router.route("/").get(getAllCategories);
