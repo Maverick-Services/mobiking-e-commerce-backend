@@ -6,14 +6,7 @@ import { upload } from "../middlewares/multer.middlewares.js";
 const router = Router()
 
 //Product Routes
-router.route("/createGroup").post(
-    verifyJWT,
-    upload.fields([
-        {
-            name: "banner",
-            maxCount: 1
-        }
-    ]), createGroup);
+router.route("/createGroup").post(verifyJWT, createGroup);
 router.route("/addProduct").post(verifyJWT, addProductInGroup);
 router.route("/removeProduct").post(verifyJWT, removeProductFromGroup);
 

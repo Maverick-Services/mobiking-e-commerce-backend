@@ -10,7 +10,8 @@ const createProduct = asyncHandler(async (req, res) => {
     const {
         name, fullName, description,
         price, categoryId,
-        slug, active } = req.body;
+        slug, active, images
+    } = req.body;
 
     //TODO: Add Images to it
 
@@ -32,18 +33,18 @@ const createProduct = asyncHandler(async (req, res) => {
     //create selling price
     const sellingPrice = [{ price }]
 
-    let images = [];
+    // let images = [];
 
-    if (Array.isArray(req.files?.images) && req.files.images.length > 0) {
-        const uploadPromises = req.files.images.map(async (fl) => {
-            const filePath = fl?.path;
-            const image = await uploadOnCloudinary(filePath);
-            return image;
-        });
+    // if (Array.isArray(req.files?.images) && req.files.images.length > 0) {
+    //     const uploadPromises = req.files.images.map(async (fl) => {
+    //         const filePath = fl?.path;
+    //         const image = await uploadOnCloudinary(filePath);
+    //         return image;
+    //     });
 
-        images = await Promise.all(uploadPromises); // ✅ Wait for all uploads
-        images = images?.map(ph => ph?.secure_url);
-    }
+    //     images = await Promise.all(uploadPromises); // ✅ Wait for all uploads
+    //     images = images?.map(ph => ph?.secure_url);
+    // }
 
     //create new product
     const newProduct = await Product.create({

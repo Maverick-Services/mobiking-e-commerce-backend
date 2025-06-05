@@ -11,14 +11,7 @@ import { upload } from "../middlewares/multer.middlewares.js";
 const router = Router()
 
 //Product Routes
-router.route("/createProduct").post(verifyJWT,
-    upload.fields([
-        {
-            name: "images",
-            maxCount: 4
-        }
-    ]),
-    createProduct);
+router.route("/createProduct").post(verifyJWT, createProduct);
 router.route("/:_id").put(verifyJWT, editProduct);
 router.route("/:_id").delete(verifyJWT, deleteProduct);
 router.route("/").get(getAllProducts);

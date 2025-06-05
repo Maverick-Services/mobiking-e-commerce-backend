@@ -14,18 +14,7 @@ import { upload } from "../middlewares/multer.middlewares.js";
 
 const router = Router()
 
-router.route("/createUser").post(verifyJWT,
-    upload.fields([
-        {
-            name: "profilePicture",
-            maxCount: 1
-        },
-        {
-            name: "documents",
-            maxCount: 4
-        }
-    ]),
-    createEmployee);
+router.route("/createUser").post(verifyJWT, createEmployee);
 router.route("/login").post(loginUser);
 router.route("/refresh-token").post(refreshAccessToken)
 router.route("/logout").post(verifyJWT, logoutUser);

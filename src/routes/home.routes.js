@@ -6,15 +6,7 @@ import { upload } from "../middlewares/multer.middlewares.js";
 const router = Router()
 
 //Product Routes
-router.route("/createHomeLayout").post(
-    verifyJWT,
-    upload.fields([
-        {
-            name: "banners",
-            maxCount: 4
-        }
-    ]),
-    createHome);
+router.route("/createHomeLayout").post(verifyJWT, createHome);
 
 router.route("/").get(getHomeLayout);
 

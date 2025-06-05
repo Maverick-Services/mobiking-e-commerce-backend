@@ -10,10 +10,6 @@ const createGroup = asyncHandler(async (req, res) => {
         banner, isBannerVisble, isSpecial
     } = req.body;
 
-    console.log(req?.files);
-
-    //TODO: Add banner to it
-
     //Validate details
     if (
         !name || !sequenceNo

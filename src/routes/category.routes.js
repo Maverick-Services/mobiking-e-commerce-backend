@@ -20,22 +20,7 @@ router.route("/view/:_id").get(verifyJWT, getCategoryById);
 router.route("/details/:slug").get(getCategoryBySlug);
 
 //Sub Category Routes
-router.route("/createSubCategory").post(verifyJWT,
-    upload.fields([
-        {
-            name: "upperBanner",
-            maxCount: 1
-        },
-        {
-            name: "lowerBanner",
-            maxCount: 1
-        },
-        {
-            name: "photos",
-            maxCount: 4
-        }
-    ]),
-    createSubCategory);
+router.route("/createSubCategory").post(verifyJWT, createSubCategory);
 router.route("/subCategories/:_id").put(verifyJWT, editSubCategory);
 router.route("/subCategories/:_id").delete(verifyJWT, deleteSubCategory);
 router.route("/subCategories").get(getAllSubCategories);

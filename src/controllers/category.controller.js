@@ -26,7 +26,7 @@ const createCategory = asyncHandler(async (req, res) => {
     const newCategory = await Category.create({
         name,
         slug,
-        image,
+        image: image ? image : "",
         active
     });
 
@@ -142,7 +142,10 @@ const createSubCategory = asyncHandler(async (req, res) => {
         deliveryCharge,
         minOrderAmount,
         minFreeDeliveryOrderAmount,
-        categoryId
+        categoryId,
+        upperBanner,
+        lowerBanner,
+        photos
     } = req.body;
 
     //Todo: Add Images, upper, lower banner in the subcategories
@@ -157,40 +160,39 @@ const createSubCategory = asyncHandler(async (req, res) => {
         throw new ApiError(409, `Parent category not found`);
     }
 
+    // const upperBannerLocalPath = req.files?.upperBanner[0]?.path;
+    // const lowerBannerLocalPath = req.files?.lowerBanner[0]?.path;
 
-    const upperBannerLocalPath = req.files?.upperBanner[0]?.path;
-    const lowerBannerLocalPath = req.files?.lowerBanner[0]?.path;
+    // if (!upperBannerLocalPath || !lowerBannerLocalPath) {
+    //     throw new ApiError(400, "Avatar file is required")
+    // }
 
-    if (!upperBannerLocalPath || !lowerBannerLocalPath) {
-        throw new ApiError(400, "Avatar file is required")
-    }
+    // const upperBanner = await uploadOnCloudinary(upperBannerLocalPath)
+    // const lowerBanner = await uploadOnCloudinary(lowerBannerLocalPath)
+    // // console.log(photosLocalPath);
 
-    const upperBanner = await uploadOnCloudinary(upperBannerLocalPath)
-    const lowerBanner = await uploadOnCloudinary(lowerBannerLocalPath)
-    // console.log(photosLocalPath);
+    // let photos = [];
 
-    let photos = [];
+    // if (Array.isArray(req.files?.photos) && req.files.photos.length > 0) {
+    //     const uploadPromises = req.files.photos.map(async (fl) => {
+    //         const filePath = fl?.path;
+    //         const photo = await uploadOnCloudinary(filePath);
+    //         return photo;
+    //     });
 
-    if (Array.isArray(req.files?.photos) && req.files.photos.length > 0) {
-        const uploadPromises = req.files.photos.map(async (fl) => {
-            const filePath = fl?.path;
-            const photo = await uploadOnCloudinary(filePath);
-            return photo;
-        });
+    //     photos = await Promise.all(uploadPromises); // ✅ Wait for all uploads
+    //     photos = photos?.map(ph => ph?.secure_url);
+    // }
 
-        photos = await Promise.all(uploadPromises); // ✅ Wait for all uploads
-        photos = photos?.map(ph => ph?.secure_url);
-    }
-
-    if (!upperBanner || !lowerBanner) {
-        throw new ApiError(400, "Upper and lower banners are required")
-    }
+    // if (!upperBanner || !lowerBanner) {
+    //     throw new ApiError(400, "Upper and lower banners are required")
+    // }
 
     const newSubCategory = await SubCategory.create({
         name, slug, active,
         sequenceNo, featured,
-        upperBanner: upperBanner?.secure_url,
-        lowerBanner: lowerBanner?.secure_url,
+        upperBanner: upperBanner ? upperBanner : "",
+        lowerBanner: lowerBanner ? lowerBanner : "",
         photos: photos ? photos : [],
         deliveryCharge,
         minOrderAmount,
