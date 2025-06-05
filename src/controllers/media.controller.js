@@ -3,30 +3,32 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary, deleteOnCloudinary, getImagesFromCloudinary } from "../utils/cloudinary.js";
 
-export const addImage = asyncHandler(async (req) => {
+export const addImage = asyncHandler(async (req, res) => {
     try {
         const { image } = req.body;
 
         if (!image) {
-            return ApiError(400, "Image is required");
+            throw new ApiError(400, "Image is required");
         }
 
         const uploadResponse = await uploadOnCloudinary(image);
 
         console.log("Cloudinary Response:", uploadResponse);
 
-        return ApiResponse(200, { imageURL: uploadResponse.secure_url }, "Image Uploaded Successfully");
+        return res.status(200).json(
+            new ApiResponse(200, { imageURL: uploadResponse.secure_url }, "Image Uploaded Successfully")
+        );
     } catch (error) {
-        return ApiError(500, "Could not upload Image");
+        throw new ApiError(500, "Could not upload Image");
     }
 })
 
-export const deleteImage = asyncHandler(async (req) => {
+export const deleteImage = asyncHandler(async (req, res) => {
     try {
         const { publicId } = req.body;
 
         if (!publicId) {
-            return ApiError(400, "Public Id is required");
+            throw new ApiError(400, "Public Id is required");
         }
 
         const result = await deleteOnCloudinary(publicId);
@@ -34,13 +36,15 @@ export const deleteImage = asyncHandler(async (req) => {
             throw new ApiError(500, 'Someting went wrong while deleting image');
         }
 
-        return ApiResponse(200, "Image deleted Successfully");
+        return res.status(200).json(
+            new ApiResponse(200, "Image deleted Successfully")
+        );
     } catch (error) {
-        return ApiError(500, "Could not delete Image");
+        throw new ApiError(500, "Could not delete Image");
     }
 })
 
-export const getImages = asyncHandler(async (req) => {
+export const getImages = asyncHandler(async (req, res) => {
     try {
 
         const result = await getImagesFromCloudinary();
@@ -48,8 +52,12 @@ export const getImages = asyncHandler(async (req) => {
             throw new ApiError(500, 'Someting went wrong while fetching images');
         }
 
-        return ApiResponse(200, "Images fetched Successfully");
+        // console.log(result);
+        return res.status(200).json(
+            new ApiResponse(200, result, "Images fetched Successfully")
+        );
     } catch (error) {
-        return ApiError(500, "Could not fetch images");
+
+        throw new ApiError(500, "Could not fetch images");
     }
 })
