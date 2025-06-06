@@ -45,7 +45,7 @@ const loginUser = asyncHandler(async (req, res) => {
             }
         })
             .populate("wishlist")
-            .populate("orders")
+            // .populate("orders")
             .exec();
         //populate orders
 
@@ -74,7 +74,7 @@ const loginUser = asyncHandler(async (req, res) => {
                 }
             })
                 .populate("wishlist")
-                .populate("orders")
+                // .populate("orders")
                 .exec();
             //populate orders
 
@@ -286,7 +286,7 @@ const createEmployee = asyncHandler(async (req, res) => {
                 }
             })
             .populate("wishlist")
-            .populate("orders")
+            // .populate("orders")
             .exec();
     } else {
         createdUser = await User.findById(user._id)
@@ -299,7 +299,7 @@ const createEmployee = asyncHandler(async (req, res) => {
                 }
             })
             .populate("wishlist")
-            .populate("orders")
+            // .populate("orders")
             .exec();
     }
 
@@ -441,7 +441,9 @@ const getUsersByRole = asyncHandler(async (req, res) => {
 })
 
 const getUserById = asyncHandler(async (req, res) => {
-    const completeUserDetails = await User.findById(req?.params?._id).populate("orders").exec();
+    const completeUserDetails = await User.findById(req?.params?._id)
+        // .populate("orders")
+        .exec();
 
     if (!completeUserDetails) {
         throw new ApiError(409, "Could not fetch user details");
