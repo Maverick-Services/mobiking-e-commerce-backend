@@ -45,6 +45,7 @@ const loginUser = asyncHandler(async (req, res) => {
             }
         })
             .populate("wishlist")
+            .populate("orders")
             .exec();
         //populate orders
 
@@ -73,6 +74,7 @@ const loginUser = asyncHandler(async (req, res) => {
                 }
             })
                 .populate("wishlist")
+                .populate("orders")
                 .exec();
             //populate orders
 
@@ -258,9 +260,48 @@ const createEmployee = asyncHandler(async (req, res) => {
         documents: documents ? documents : []
     })
 
-    const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken"
-    )
+    if (!user) {
+        throw new ApiError(500, "Something went wrong while registering the user")
+    }
+
+    let createdUser = null;
+    if (user?.role == ROLES.USER) {
+        const newCart = await Cart.create({
+            userId: user?._id,
+        });
+
+        createdUser = await User.findByIdAndUpdate(
+            user?._id,
+            {
+                cart: newCart?._id
+            },
+            { new: true }
+        )
+            .select("-password -refreshToken")
+            .populate({
+                path: "cart",
+                populate: {
+                    path: "items.productId",
+                    model: "Product"
+                }
+            })
+            .populate("wishlist")
+            .populate("orders")
+            .exec();
+    } else {
+        createdUser = await User.findById(user._id)
+            .select("-password -refreshToken")
+            .populate({
+                path: "cart",
+                populate: {
+                    path: "items.productId",
+                    model: "Product"
+                }
+            })
+            .populate("wishlist")
+            .populate("orders")
+            .exec();
+    }
 
     if (!createdUser) {
         throw new ApiError(500, "Something went wrong while registering the user")
