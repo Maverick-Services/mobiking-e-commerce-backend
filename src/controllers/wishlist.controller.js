@@ -35,12 +35,17 @@ const addProductInWishList = asyncHandler(async (req, res) => {
             path: "cart",
             populate: {
                 path: "items.productId",
-                model: "Product"
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
             }
         })
         .populate("wishlist")
-        //popuate orders here
+        // .populate("orders")
         .exec();
+    //populate orders
 
     return res.status(201).json(
         new ApiResponse(201, {
@@ -80,12 +85,17 @@ const removeProductFromWishList = asyncHandler(async (req, res) => {
             path: "cart",
             populate: {
                 path: "items.productId",
-                model: "Product"
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
             }
         })
         .populate("wishlist")
-        //popuate orders here
+        // .populate("orders")
         .exec();
+    //populate orders
 
     return res.status(201).json(
         new ApiResponse(201, {

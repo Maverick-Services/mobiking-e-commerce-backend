@@ -41,7 +41,11 @@ const loginUser = asyncHandler(async (req, res) => {
             path: "cart",
             populate: {
                 path: "items.productId",
-                model: "Product"
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
             }
         })
             .populate("wishlist")
@@ -70,7 +74,11 @@ const loginUser = asyncHandler(async (req, res) => {
                 path: "cart",
                 populate: {
                     path: "items.productId",
-                    model: "Product"
+                    model: "Product",
+                    populate: {
+                        path: "category",  // This is the key part
+                        model: "SubCategory"
+                    }
                 }
             })
                 .populate("wishlist")
@@ -111,11 +119,17 @@ const loginUser = asyncHandler(async (req, res) => {
             path: "cart",
             populate: {
                 path: "items.productId",
-                model: "Product"
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
             }
         })
         .populate("wishlist")
+        // .populate("orders")
         .exec();
+    //populate orders
 
     const options = {
         httpOnly: true,

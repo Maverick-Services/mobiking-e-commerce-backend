@@ -11,6 +11,7 @@ import {
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import { addProductInWishList, removeProductFromWishList } from "../controllers/wishlist.controller.js";
+import { createAddress } from "../controllers/address.controller.js";
 
 const router = Router()
 
@@ -26,5 +27,8 @@ router.route("/:_id").get(verifyJWT, getUserById);
 //Whishlist Routes
 router.route("/wishlist/add").post(verifyJWT, addProductInWishList);
 router.route("/wishlist/remove").post(verifyJWT, removeProductFromWishList);
+
+//Address Routes
+router.route("/address/add").post(verifyJWT, createAddress);
 
 export default router

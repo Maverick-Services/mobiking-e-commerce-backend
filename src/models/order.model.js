@@ -53,7 +53,7 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ['COD', 'ONLINE'],
         default: 'COD',
-        required: true
+        // required: true
     },
     userId: {
         type: mongoose.Schema.Types.ObjectId,

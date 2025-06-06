@@ -9,6 +9,20 @@ const permissionSchema = new mongoose.Schema({
     delete: { type: Boolean, default: false }
 }, { _id: false });
 
+const addressSchema = new mongoose.Schema({
+    label: {
+        type: String,
+        trim: true,
+        unique: true
+    },
+    addressLine1: {
+        type: String,
+        trim: true,
+        unique: true
+    },
+
+})
+
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -24,6 +38,10 @@ const userSchema = new mongoose.Schema({
         trim: true,
         unique: true
     },
+    address: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Address'
+    }],
     password: {
         type: String,
         trim: true

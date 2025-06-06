@@ -105,11 +105,17 @@ const addProductInCart = asyncHandler(async (req, res) => {
             path: "cart",
             populate: {
                 path: "items.productId",
-                model: "Product"
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
             }
         })
         .populate("wishlist")
+        // .populate("orders")
         .exec();
+    //populate orders
 
     return res.status(201).json(
         new ApiResponse(201, {
@@ -183,11 +189,17 @@ const removeProductFromCart = asyncHandler(async (req, res) => {
             path: "cart",
             populate: {
                 path: "items.productId",
-                model: "Product"
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
             }
         })
         .populate("wishlist")
+        // .populate("orders")
         .exec();
+    //populate orders
 
     // 6. Recalculate total cart value
     const totalCartValue = updatedUser.cart.items.reduce((total, item) => {
