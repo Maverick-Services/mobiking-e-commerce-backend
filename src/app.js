@@ -27,7 +27,7 @@ import groupRouter from './routes/group.routes.js'
 import homeRouter from './routes/home.routes.js'
 import cartRouter from './routes/cart.routes.js'
 import mediaRouter from './routes/media.routes.js'
-import { startAbandonedCartScheduler } from './scheduler/abandonedCart.scheduler.js';
+// import { startAbandonedCartScheduler } from './scheduler/abandonedCart.scheduler.js';
 
 //routes declaration
 app.use("/api/v1/users", userRouter)
@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
     });
 });
 
-startAbandonedCartScheduler();
+// startAbandonedCartScheduler();
 
 // Global error handler
 app.use((err, req, res, next) => {

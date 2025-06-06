@@ -29,7 +29,9 @@ const createAddress = asyncHandler(async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
         req?.user?._id,
         {
-            address: newAddress?._id
+            $push: {
+                address: newAddress?._id
+            }
         },
         { new: true }
     )
@@ -42,7 +44,7 @@ const createAddress = asyncHandler(async (req, res) => {
             }
         })
         .populate("wishlist")
-        // .populate("orders")
+        .populate("address")
         .exec();
 
     if (!updatedUser) {
@@ -50,7 +52,7 @@ const createAddress = asyncHandler(async (req, res) => {
     }
 
     return res.status(201).json(
-        new ApiResponse(201, updatedUser?.address, "Address added successfully")
+        new ApiResponse(201, updatedUser, "Address added successfully")
     )
 
 })
