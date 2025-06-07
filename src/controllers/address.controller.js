@@ -57,6 +57,69 @@ const createAddress = asyncHandler(async (req, res) => {
 
 })
 
+const editAddress = asyncHandler(async (req, res) => {
+    const { _id } = req.params;
+    const {
+        label, street, city,
+        state, pinCode
+    } = req?.body;
+
+    if (!_id) {
+        throw new ApiError(400, "Address Id Required");
+    }
+
+    const foundAddress = await Address.findById(_id)
+
+    if (!foundAddress) {
+        throw new ApiError(500, "Address not found")
+    }
+
+    const updatedAddess = await Address.findByIdAndUpdate(
+        _id,
+        {
+            label, street, city,
+            state, pinCode
+        },
+        { new: true }
+    )
+        .populate({
+            path: "userId",
+            select: "-password -refreshToken"
+        })
+        .exec();
+
+    if (!updatedAddess) {
+        throw new ApiError(500, "Something went wrong while updating the address for user")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedAddess, "Address updated successfully")
+    )
+
+})
+
+const getAllAddressByUser = asyncHandler(async (req, res) => {
+
+    console.log("User", req?.user?._id);
+    const userAddresses = await Address.find({ userId: req?.user?._id })
+        .populate({
+            path: "userId",
+            select: "-password -refreshToken"
+        })
+        .exec();
+
+    if (!userAddresses) {
+        throw new ApiError(500, "Something went wrong while fetching the addresses")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, userAddresses, "Address fetched successfully")
+    )
+
+})
+
 export {
-    createAddress
+    createAddress,
+    editAddress,
+    getAllAddressByUser
 }
