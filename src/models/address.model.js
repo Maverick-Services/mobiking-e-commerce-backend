@@ -9,7 +9,7 @@ const addressSchema = new mongoose.Schema({
     label: {
         type: String,
         required: true,
-        unique: [true, "Label already assigned"]
+        // unique: [true, "Label already assigned"]
     },
     street: {
         type: String,
