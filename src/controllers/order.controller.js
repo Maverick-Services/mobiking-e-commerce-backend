@@ -6,8 +6,9 @@ import { Product } from '../models/product.model.js';   // <-- import Product
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
+import { asyncHandler } from '../utils/asyncHandler.js';
 
-export const createCodOrder = async (req, res) => {
+const createCodOrder = asyncHandler(async (req, res) => {
     const session = await mongoose.startSession();
 
     try {
@@ -155,9 +156,37 @@ export const createCodOrder = async (req, res) => {
     } finally {
         session.endSession();
     }
-};
+});
 
-export const createAbandonedOrderFromCart = async (cartId, userId, address) => {
+const getAllOrdersByUser = asyncHandler(async (req, res) => {
+
+    // console.log("User", req?.user?._id);
+    const userOrders = await Order.find({ userId: req?.user?._id })
+        .populate({
+            path: "userId",
+            select: "-password -refreshToken"
+        })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: {
+                path: "category",  // This is the key part
+                model: "SubCategory"
+            }
+        })
+        .exec();
+
+    if (!userOrders) {
+        throw new ApiError(500, "Something went wrong while fetching the orders")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, userOrders, "Orders fetched successfully")
+    )
+
+})
+
+const createAbandonedOrderFromCart = async (cartId, userId, address) => {
     if (!cartId || !userId || !address) {
         throw new Error("Cart ID, User ID, and address are required.");
     }
@@ -201,149 +230,8 @@ export const createAbandonedOrderFromCart = async (cartId, userId, address) => {
     return newOrder;
 };
 
-// export const createCodOrder = async (req, res) => {
-//     const session = await mongoose.startSession();
-
-//     try {
-//         const {
-//             userId, cartId,
-//             name, email, phoneNo,
-//             orderAmount,
-//             discount,
-//             deliveryCharge,
-//             gst,
-//             subtotal,
-//             address,
-//             method = 'COD',
-//             isAppOrder
-//         } = req.body;
-
-//         if (
-//             !userId || !address || !cartId ||
-//             !name || !email || !phoneNo || !address ||
-//             !orderAmount || !deliveryCharge || !gst || !subtotal ||
-//             !method
-//         ) {
-//             throw new ApiError(400, 'Required etails not found.');
-//         }
-
-//         // 1️⃣  Load cart
-//         const cart = await Cart.findOne({ _id: cartId }).populate('items.productId');
-//         if (!cart || cart.items.length === 0) {
-//             throw new ApiError(400, 'Cart is empty or not found.');
-//         }
-
-//         // 2️⃣  Price calculation
-//         // const subtotal = cart.items.reduce(
-//         //     (acc, i) => acc + i.price * i.quantity,
-//         //     0
-//         // );
-//         // const deliveryCharge = 0;
-//         // const discount = 0;
-//         // const gst = +(subtotal * 0.18).toFixed(2);
-//         // const orderAmount = subtotal + gst + deliveryCharge - discount;
-
-//         // 3️⃣  Build order object
-//         const newOrderDoc = new Order({
-//             userId,
-//             name, email, phoneNo,
-//             address,
-//             method,
-//             type: 'Regular',
-//             status: 'New',
-//             isAppOrder,
-//             abondonedOrder: false,
-//             orderId: uuidv4().split('-')[0].toUpperCase(),
-//             orderAmount,
-//             discount,
-//             deliveryCharge,
-//             gst,
-//             subtotal,
-//             items: cart.items
-//         });
-
-//         /* 4️⃣ Run everything in a single transaction
-//               - save order
-//               - decrement product stock
-//               - clear cart                                       */
-//         await session.withTransaction(async () => {
-
-//             // 4a. Save order
-//             await newOrderDoc.save({ session });
-
-//             // 4b. Prepare bulk stock updates
-//             const bulkOps = cart.items.map(it => ({
-//                 updateOne: {
-//                     filter: {
-//                         _id: it.productId._id,
-//                         totalStock: { $gte: it.quantity },                      // guard
-//                         [`variants.${it.variantName}`]: { $gte: it.quantity }   // guard
-//                     },
-//                     update: {
-//                         $inc: {
-//                             totalStock: -it.quantity,
-//                             [`variants.${it.variantName}`]: -it.quantity
-//                         }
-//                     }
-//                 }
-//             }));
-
-//             const bulkRes = await Product.bulkWrite(bulkOps, { session });
-//             const failed = bulkRes.result.nModified !== cart.items.length;
-
-//             if (failed) {
-//                 // At least one product didn't have enough stock
-//                 throw new ApiError(404, 'One or more items are out of stock.');
-//             }
-
-//             // 4c. Clear cart
-//             cart.items = [];
-//             cart.totalCartValue = 0;
-//             await cart.save({ session });
-//         });
-
-//         // add new order in user
-//         const updatedUser = await User.findByIdAndUpdate(
-//             req?.user?._id,
-//             {
-//                 $push: {
-//                     orders: newOrderDoc?._id
-//                 }
-//             },
-//             { new: true }
-//         )
-//             .select("-password -refreshToken").exec();
-
-//         if(!updatedUser){
-//             throw new ApiError(500, "Something went wrong while updating orders in user")
-//         }
-
-//         // add new order in product
-//         const updatedProduct = await Product.findByIdAndUpdate(
-//             req?.user?._id,
-//             {
-//                 $push: {
-//                     orders: newOrderDoc?._id
-//                 }
-//             },
-//             { new: true }
-//         )
-//             .select("-password -refreshToken").exec();
-
-//         if(!updatedUser){
-//             throw new ApiError(500, "Something went wrong while updating orders in user")
-//         }
-
-//         // 5️⃣  Success response outside the session
-//         return res.status(201).json(
-//             new ApiResponse(201, newOrderDoc, "Order Placed Successfully")
-//         );
-
-//     } catch (err) {
-//         console.error('Error placing order:', err.message);
-//         // Note: session abort automatically on error thrown inside withTransaction
-//         return res.status(500).json({ message: err.message || 'Internal server error' });
-//     } finally {
-//         session.endSession();
-//     }
-// };
+export {
+    createCodOrder,
+    getAllOrdersByUser,
+    createAbandonedOrderFromCart
+}
