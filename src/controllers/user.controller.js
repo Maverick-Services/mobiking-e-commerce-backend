@@ -48,6 +48,7 @@ const loginUser = asyncHandler(async (req, res) => {
                 }
             }
         })
+            .populate("address")
             .populate("wishlist")
             // .populate("orders")
             .exec();
@@ -82,6 +83,7 @@ const loginUser = asyncHandler(async (req, res) => {
                 }
             })
                 .populate("wishlist")
+                .populate("address")
                 // .populate("orders")
                 .exec();
             //populate orders
@@ -127,6 +129,7 @@ const loginUser = asyncHandler(async (req, res) => {
             }
         })
         .populate("wishlist")
+        .populate("address")
         // .populate("orders")
         .exec();
     //populate orders
