@@ -230,12 +230,6 @@ const editProduct = asyncHandler(async (req, res) => {
     )
 });
 
-const markProductInGroup = asyncHandler(async (req, res) => { });
-const deleteProduct = asyncHandler(async (req, res) => { });
-const getAllProducts = asyncHandler(async (req, res) => { });
-const getProductsByCategory = asyncHandler(async (req, res) => { });
-const getProductsByGroup = asyncHandler(async (req, res) => { });
-const getProductById = asyncHandler(async (req, res) => { });
 const getProductBySlug = asyncHandler(async (req, res) => {
     const completeProductDetails = await Product.findOne({
         slug: req.params.slug
@@ -249,6 +243,24 @@ const getProductBySlug = asyncHandler(async (req, res) => {
         new ApiResponse(200, completeProductDetails, "Product details fetched Successfully")
     )
 });
+
+const getAllProducts = asyncHandler(async (req, res) => {
+    const allProducts = await Product.find({}).populate("orders stock groups category").exec();
+
+    if (!allProducts) {
+        throw new ApiError(409, "Could not find products");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allProducts, "Products fetched Successfully")
+    )
+});
+
+const markProductInGroup = asyncHandler(async (req, res) => { });
+const deleteProduct = asyncHandler(async (req, res) => { });
+const getProductsByCategory = asyncHandler(async (req, res) => { });
+const getProductsByGroup = asyncHandler(async (req, res) => { });
+const getProductById = asyncHandler(async (req, res) => { });
 
 export {
     createProduct,
