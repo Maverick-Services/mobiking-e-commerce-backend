@@ -186,6 +186,31 @@ const getAllOrdersByUser = asyncHandler(async (req, res) => {
 
 })
 
+const getAllOrders = asyncHandler(async (req, res) => {
+    const allOrder = await Order.find({})
+        .populate({
+            path: 'userId',
+            select: "-password -refreshToken"
+        })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: {
+                path: "category",  // This is the key part
+                model: "SubCategory"
+            }
+        })
+        .exec();
+
+    if (!allOrder) {
+        throw new ApiError(409, "Could not find orders");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allOrder, "Orders fetched Successfully")
+    )
+});
+
 const createAbandonedOrderFromCart = async (cartId, userId, address) => {
     if (!cartId || !userId || !address) {
         throw new Error("Cart ID, User ID, and address are required.");
@@ -233,5 +258,6 @@ const createAbandonedOrderFromCart = async (cartId, userId, address) => {
 export {
     createCodOrder,
     getAllOrdersByUser,
+    getAllOrders,
     createAbandonedOrderFromCart
 }

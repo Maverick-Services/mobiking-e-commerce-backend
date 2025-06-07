@@ -32,15 +32,15 @@ const orderSchema = new mongoose.Schema({
     },
     name: {
         type: String,
-        required: true
+        // required: true
     },
     email: {
         type: String,
-        required: true
+        // required: true
     },
     phoneNo: {
         type: String,
-        required: true
+        // required: true
     },
     deliveryCharge: {
         type: Number,
