@@ -30,7 +30,15 @@ const orderSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    address: {
+    name: {
+        type: String,
+        required: true
+    },
+    email: {
+        type: String,
+        required: true
+    },
+    phoneNo: {
         type: String,
         required: true
     },

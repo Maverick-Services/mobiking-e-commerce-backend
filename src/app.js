@@ -27,6 +27,7 @@ import groupRouter from './routes/group.routes.js'
 import homeRouter from './routes/home.routes.js'
 import cartRouter from './routes/cart.routes.js'
 import mediaRouter from './routes/media.routes.js'
+import orderRouter from './routes/order.routes.js'
 // import { startAbandonedCartScheduler } from './scheduler/abandonedCart.scheduler.js';
 
 //routes declaration
@@ -37,6 +38,7 @@ app.use("/api/v1/groups", groupRouter)
 app.use("/api/v1/home", homeRouter)
 app.use("/api/v1/cart", cartRouter)
 app.use("/api/v1/media", mediaRouter)
+app.use("/api/v1/orders", orderRouter)
 
 app.get('/', (req, res) => {
     res.json({
