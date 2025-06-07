@@ -10,8 +10,15 @@ import {
     refreshAccessToken
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
-import { addProductInWishList, removeProductFromWishList } from "../controllers/wishlist.controller.js";
-import { createAddress, editAddress, getAllAddressByUser } from "../controllers/address.controller.js";
+import {
+    addProductInWishList,
+    removeProductFromWishList
+} from "../controllers/wishlist.controller.js";
+import {
+    createAddress,
+    deleteAddress, editAddress,
+    getAllAddressByUser
+} from "../controllers/address.controller.js";
 
 const router = Router()
 
@@ -31,6 +38,7 @@ router.route("/wishlist/remove").post(verifyJWT, removeProductFromWishList);
 //Address Routes
 router.route("/address/add").post(verifyJWT, createAddress);
 router.route("/address/:_id").put(verifyJWT, editAddress);
+router.route("/address/:_id").delete(verifyJWT, deleteAddress);
 router.route("/address/view").get(verifyJWT, getAllAddressByUser);
 
 export default router
