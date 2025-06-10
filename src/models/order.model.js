@@ -8,6 +8,11 @@ const orderSchema = new mongoose.Schema({
         enum: ['New', 'Accepted', 'Rejected', 'Cancelled', 'Shipped', 'Delivered', 'Returned', 'Replaced', 'Hold'],
         default: 'New'
     },
+    paymentStatus: {
+        type: String,
+        enum: ['Pending', 'Paid'],
+        default: 'Pending'
+    },
     type: {
         type: String,
         enum: ['Regular', 'Pos'],
@@ -25,6 +30,16 @@ const orderSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true
+    },
+    razorpayOrderId: {
+        type: String,
+        // required: true,
+        // unique: true
+    },
+    razorpayPaymentId: {
+        type: String,
+        // required: true,
+        // unique: true
     },
     orderAmount: {
         type: Number,
@@ -59,7 +74,7 @@ const orderSchema = new mongoose.Schema({
     },
     method: {
         type: String,
-        enum: ['COD', 'ONLINE'],
+        enum: ['COD', 'Online'],
         default: 'COD',
         // required: true
     },
