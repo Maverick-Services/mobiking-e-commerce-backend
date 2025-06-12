@@ -157,8 +157,21 @@ const removeProductFromGroup = asyncHandler(async (req, res) => {
     )
 });
 
+const getAllGroups = asyncHandler(async (req, res) => {
+    const allGroups = await Group.find({}).populate("products").exec();
+
+    if (!allGroups) {
+        throw new ApiError(409, "Could not find groups");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allGroups, "Groups fetched Successfully")
+    )
+});
+
 export {
     createGroup,
     addProductInGroup,
-    removeProductFromGroup
+    removeProductFromGroup,
+    getAllGroups
 }
