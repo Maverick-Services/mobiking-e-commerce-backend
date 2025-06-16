@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Razorpay from 'razorpay';
+import axios from 'axios';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from "uuid";
 import { Order } from "../models/order.model.js";
@@ -31,6 +32,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
             gst,
             subtotal,
             address,
+            addressId,
             method = 'COD',
             isAppOrder
         } = req.body;
@@ -60,6 +62,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
             userId,
             name, email, phoneNo,
             address,
+            addressId,
             method,
             type: 'Regular',
             status: 'New',
@@ -169,7 +172,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
     }
 });
 
-export const createOnlineOrder = asyncHandler(async (req, res) => {
+const createOnlineOrder = asyncHandler(async (req, res) => {
     const session = await mongoose.startSession();
 
     try {
@@ -182,6 +185,7 @@ export const createOnlineOrder = asyncHandler(async (req, res) => {
             gst,
             subtotal,
             address,
+            addressId,
             isAppOrder
         } = req.body;
 
@@ -212,12 +216,13 @@ export const createOnlineOrder = asyncHandler(async (req, res) => {
             userId,
             name, email, phoneNo,
             address,
+            addressId,
             method: 'Online',
             type: 'Regular',
             status: 'New',
             paymentStatus: 'Pending',
             isAppOrder,
-            abondonedOrder: false,
+            abondonedOrder: true,
             orderId: uuidv4().split('-')[0].toUpperCase(),
             razorpayOrderId: razorpayOrder.id,
             orderAmount,
@@ -230,13 +235,45 @@ export const createOnlineOrder = asyncHandler(async (req, res) => {
 
         await newOrder.save({ session });
 
+        const newCart = new Cart({
+            userId: cart.userId,
+            items: cart.items,
+            totalCartValue: cart.totalCartValue
+        });
+
+        await newCart.save({ session });
+
+        const updatedUser = await User.findByIdAndUpdate(
+            cart.userId,
+            { cart: newCart._id },
+            { new: true, session }
+        ).select('-password -refreshToken')
+            .populate({
+                path: "cart",
+                populate: {
+                    path: "items.productId",
+                    model: "Product",
+                    populate: {
+                        path: "category",  // This is the key part
+                        model: "SubCategory"
+                    }
+                }
+            })
+            .populate("wishlist")
+            .populate("address")
+            .populate("orders")
+            .exec();
+
+        await Cart.findByIdAndDelete(cart._id, { session });
+
         return res.status(201).json(
             new ApiResponse(201, {
                 razorpayOrderId: razorpayOrder.id,
                 amount: razorpayOrder.amount,
                 currency: razorpayOrder.currency,
                 key: process.env.RAZORPAY_KEY_ID,
-                newOrderId: newOrder._id
+                newOrderId: newOrder._id,
+                user: updatedUser
             }, 'Razorpay Order Created')
         );
 
@@ -248,7 +285,86 @@ export const createOnlineOrder = asyncHandler(async (req, res) => {
     }
 });
 
-export const verifyPayment = async (req, res) => {
+// const createOnlineOrder = asyncHandler(async (req, res) => {
+//     const session = await mongoose.startSession();
+
+//     try {
+//         const {
+//             userId, cartId,
+//             name, email, phoneNo,
+//             orderAmount,
+//             discount,
+//             deliveryCharge,
+//             gst,
+//             subtotal,
+//             address,
+//             isAppOrder
+//         } = req.body;
+
+//         if (
+//             !userId || !cartId || !name || !email || !phoneNo ||
+//             !orderAmount || !subtotal || !deliveryCharge || !gst || !address
+//         ) {
+//             throw new ApiError(400, 'Required order details missing.');
+//         }
+
+//         const cart = await Cart.findOne({ _id: cartId }).populate('items.productId');
+//         if (!cart || cart.items.length === 0) {
+//             throw new ApiError(400, 'Cart is empty or not found.');
+//         }
+
+//         const razorpay = await razorpayConfig();
+
+//         // 1️⃣ Create Razorpay Order
+//         const razorpayOrder = await razorpay.orders.create({
+//             amount: orderAmount * 100, // in paise
+//             currency: 'INR',
+//             receipt: `rcpt_${uuidv4().split('-')[0]}`,
+//             payment_capture: 1
+//         });
+
+//         // 2️⃣ Create Order in DB (status: Created)
+//         const newOrder = new Order({
+//             userId,
+//             name, email, phoneNo,
+//             address,
+//             method: 'Online',
+//             type: 'Regular',
+//             status: 'New',
+//             paymentStatus: 'Pending',
+//             isAppOrder,
+//             abondonedOrder: false,
+//             orderId: uuidv4().split('-')[0].toUpperCase(),
+//             razorpayOrderId: razorpayOrder.id,
+//             orderAmount,
+//             discount,
+//             deliveryCharge,
+//             gst,
+//             subtotal,
+//             items: cart.items
+//         });
+
+//         await newOrder.save({ session });
+
+//         return res.status(201).json(
+//             new ApiResponse(201, {
+//                 razorpayOrderId: razorpayOrder.id,
+//                 amount: razorpayOrder.amount,
+//                 currency: razorpayOrder.currency,
+//                 key: process.env.RAZORPAY_KEY_ID,
+//                 newOrderId: newOrder._id
+//             }, 'Razorpay Order Created')
+//         );
+
+//     } catch (err) {
+//         console.error('createOnlineOrder error:', err);
+//         return res.status(500).json({ message: err.message || 'Internal server error' });
+//     } finally {
+//         session.endSession();
+//     }
+// });
+
+const verifyPayment = async (req, res) => {
     const session = await mongoose.startSession();
 
     try {
@@ -276,9 +392,12 @@ export const verifyPayment = async (req, res) => {
 
         const cart = await Cart.findOne({ userId: order.userId });
 
+        let updatedUser = null;
+
         if (isValid) {
             // ✅ Payment Verified
             await session.withTransaction(async () => {
+                order.abondonedOrder = false;
                 order.paymentStatus = 'Paid';
                 order.razorpayOrderId = razorpay_order_id;
                 order.razorpayPaymentId = razorpay_payment_id;
@@ -311,11 +430,26 @@ export const verifyPayment = async (req, res) => {
                     { session }
                 );
 
-                await User.findByIdAndUpdate(
+                updatedUser = await User.findByIdAndUpdate(
                     order.userId,
                     { $push: { orders: order._id } },
-                    { session }
-                );
+                    { new: true, session }
+                ).select('-password -refreshToken')
+                    .populate({
+                        path: "cart",
+                        populate: {
+                            path: "items.productId",
+                            model: "Product",
+                            populate: {
+                                path: "category",  // This is the key part
+                                model: "SubCategory"
+                            }
+                        }
+                    })
+                    .populate("wishlist")
+                    .populate("address")
+                    .populate("orders")
+                    .exec();;
 
                 cart.items = [];
                 cart.totalCartValue = 0;
@@ -323,34 +457,49 @@ export const verifyPayment = async (req, res) => {
             });
 
             return res.status(200).json(
-                new ApiResponse(200, order, "Payment Verified. Order Completed")
+                new ApiResponse(200, { order, user: updatedUser }, "Payment Verified. Order Completed")
             );
         }
 
         // ❌ Payment Verification Failed
-        await session.withTransaction(async () => {
-            order.abondonedOrder = true;
-            await order.save({ session });
+        // await session.withTransaction(async () => {
+        //     order.abondonedOrder = true;
+        //     await order.save({ session });
 
-            const newCart = new Cart({
-                userId: cart.userId,
-                items: cart.items,
-                totalCartValue: cart.totalCartValue
-            });
+        //     const newCart = new Cart({
+        //         userId: cart.userId,
+        //         items: cart.items,
+        //         totalCartValue: cart.totalCartValue
+        //     });
 
-            await newCart.save({ session });
+        //     await newCart.save({ session });
 
-            await User.findByIdAndUpdate(
-                cart.userId,
-                { cart: newCart._id },
-                { session }
-            );
+        //     updatedUser = await User.findByIdAndUpdate(
+        //         cart.userId,
+        //         { cart: newCart._id },
+        //         { new: true, session }
+        //     ).select('-password -refreshToken')
+        //         .populate({
+        //             path: "cart",
+        //             populate: {
+        //                 path: "items.productId",
+        //                 model: "Product",
+        //                 populate: {
+        //                     path: "category",  // This is the key part
+        //                     model: "SubCategory"
+        //                 }
+        //             }
+        //         })
+        //         .populate("wishlist")
+        //         .populate("address")
+        //         .populate("orders")
+        //         .exec();
 
-            await Cart.findByIdAndDelete(cart._id, { session });
-        });
+        //     await Cart.findByIdAndDelete(cart._id, { session });
+        // });
 
         return res.status(400).json(
-            new ApiResponse(400, null, 'Payment Failed. Cart Restored')
+            new ApiResponse(400, { user: updatedUser }, 'Payment Failed. Cart Restored')
         );
 
     } catch (err) {
@@ -364,7 +513,10 @@ export const verifyPayment = async (req, res) => {
 const getAllOrdersByUser = asyncHandler(async (req, res) => {
 
     // console.log("User", req?.user?._id);
-    const userOrders = await Order.find({ userId: req?.user?._id })
+    const userOrders = await Order.find(
+        { userId: req?.user?._id, abondonedOrder: false },
+        // {  }
+    )
         .populate({
             path: "userId",
             select: "-password -refreshToken"
@@ -458,9 +610,132 @@ const createAbandonedOrderFromCart = async (cartId, userId, address) => {
     return newOrder;
 };
 
+const acceptOrder = asyncHandler(async (req, res, next) => {
+    try {
+        const { shiprocketToken } = req;
+        const { orderId } = req.body;
+
+        //Validate Order Id
+        if (!orderId) {
+            throw new ApiError(400, 'Order Id not Found');
+        }
+
+        //check if order exist
+        const foundOrder = await Order.findById(orderId)
+            .populate({
+                path: 'userId',
+                select: "-password -refreshToken"
+            })
+            .populate({
+                path: "items.productId",
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
+            })
+            .populate('addressId')
+            .exec();
+        // console.log("Found Order", foundOrder);
+        if (!foundOrder) {
+            throw new ApiError(400, 'Order does not exist');
+        }
+
+        //Format the items name
+        const order_items = foundOrder.items.map((item) => {
+            const variant = item.variantName || ""; // e.g. "Red / XL"
+
+            return {
+                name: `${item.productId.fullName}${variant ? `\n , ${variant}` : ""}`, // Two-line name
+                sku: uuidv4().split('-')[0].toUpperCase() || item?.productId?._id,
+                // sku: `${item.productId._id}-${variant.replace(/\s+/g, "_").toUpperCase()}`,
+                units: item.quantity,
+                selling_price: item.price
+            };
+        });
+
+        //Create the shiprocket payload for order creation
+        const payload = {
+            order_id: foundOrder._id,
+            order_date: foundOrder.createdAt || new Date().toISOString().split("T")[0],
+            pickup_location: "Work",
+            billing_customer_name: foundOrder.name,
+            billing_last_name: "",
+            billing_address: foundOrder.address || "Rohini Delhi",
+            billing_city: foundOrder.addressId?.city,
+            billing_pincode: foundOrder.addressId?.pinCode,
+            billing_state: foundOrder.addressId?.state,
+            billing_country: "India",
+            billing_email: foundOrder.email,
+            billing_phone: foundOrder.phoneNo,
+            shipping_is_billing: true,
+            order_items,                                   // ← variant‑aware items
+            payment_method: foundOrder.method === "Online" ? "Prepaid" : "COD",
+            shipping_charges: foundOrder.deliveryCharge || 0,
+            total_discount: foundOrder.discount || 0,
+            sub_total: foundOrder.subtotal,
+            length: 10,
+            breadth: 10,
+            height: 10,
+            weight: 1
+        };
+
+        // create order on shiprocket and get the shipmnet Id
+        const { data } = await axios.post('https://apiv2.shiprocket.in/v1/external/orders/create/adhoc', payload, {
+            headers: {
+                Authorization: `Bearer ${shiprocketToken}`
+            }
+        });
+        // console.log("shiprocket order creation response", data);
+        // console.log("New Order: ", data, "Payload sent: ", payload);
+
+        if (!data?.shipment_id) {
+            throw new ApiError(409, 'Could create order at Shiprocket');
+        }
+
+        let updatedOrder = await Order.findByIdAndUpdate(
+            foundOrder?._id,
+            {
+                status: 'Accepted',
+                shipmentId: data?.shipment_id,
+                shiprocketOrderId: data?.order_id,
+                shiprocketChannelId: data?.channel_order_id,
+            },
+            { new: true }
+        ).populate({
+            path: 'userId',
+            select: "-password -refreshToken"
+        })
+            .populate({
+                path: "items.productId",
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
+            })
+            .populate('addressId')
+            .exec();
+
+        req.order = updatedOrder;
+        next();
+        // return res.status(200).json(
+        //     new ApiResponse(200, { shipmentId: data?.shipment_id }, "Order created with Shiprocket")
+        //     // { message: 'Order created with Shiprocket', shipmentId: data?.shipment_id }
+        // );
+
+    } catch (err) {
+        console.error("Shiprocket Order Error:", err?.response?.data || err);
+        res.status(500).json({ error: 'Shiprocket order creation failed' });
+    }
+});
+
 export {
     createCodOrder,
+    createOnlineOrder,
+    verifyPayment,
     getAllOrdersByUser,
     getAllOrders,
-    createAbandonedOrderFromCart
+    createAbandonedOrderFromCart,
+    acceptOrder
 }

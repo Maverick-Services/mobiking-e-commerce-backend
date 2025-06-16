@@ -9,20 +9,6 @@ const permissionSchema = new mongoose.Schema({
     delete: { type: Boolean, default: false }
 }, { _id: false });
 
-const addressSchema = new mongoose.Schema({
-    label: {
-        type: String,
-        trim: true,
-        unique: true
-    },
-    addressLine1: {
-        type: String,
-        trim: true,
-        unique: true
-    },
-
-})
-
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
