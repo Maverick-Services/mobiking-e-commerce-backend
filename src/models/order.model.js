@@ -25,6 +25,7 @@ const orderSchema = new mongoose.Schema(
                 "Pending",
                 "Courier Assigned",
                 "Pickup Scheduled",
+                "In Transit",
                 "Shipped",
                 "Delivered",
             ],
@@ -90,7 +91,7 @@ const orderSchema = new mongoose.Schema(
         orderAmount: { type: Number, required: true },
         deliveryCharge: { type: Number, default: 0 },
         discount: { type: Number, default: 0 },
-        gst: { type: Number, default: 0 },
+        gst: { type: String },
         subtotal: Number,
 
         /****************  CUSTOMER INFO  *****************/

@@ -5,7 +5,13 @@ import {
     createCodOrder,
     createOnlineOrder, verifyPayment,
     getAllOrders, getAllOrdersByUser,
-    acceptOrder
+    acceptOrder,
+    preShiprocketCancel,
+    createdCancel,
+    awbCancel,
+    postPickupCancel,
+    inTransitCancel,
+    deliveredCancel
 } from "../controllers/order.controller.js";
 import {
     assignBestCourier,
@@ -31,5 +37,16 @@ router.route("/accept").post(
     schedulePickup,
     generateLabelAndManifestBackground
 );
+
+router.route("/cancel").post(
+    verifyJWT,
+    shiprocketAuth,
+    preShiprocketCancel,
+    createdCancel,
+    awbCancel,
+    postPickupCancel,
+    inTransitCancel,
+    deliveredCancel
+)
 
 export default router;

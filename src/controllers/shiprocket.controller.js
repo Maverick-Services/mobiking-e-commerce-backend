@@ -5,7 +5,7 @@ import { Order } from "../models/order.model.js";
 // controllers/assignBestCourier.js
 const assignBestCourier = async (req, res, next) => {
     try {
-        const { shipmentId } = req.order;
+        const { shipmentId, shiprocketOrderId } = req.order;
         const token = req.shiprocketToken;
 
         if (!shipmentId)
@@ -43,10 +43,30 @@ const assignBestCourier = async (req, res, next) => {
             });
         }
 
+
+        // Call Shiprocket API to get full order details to check if pickup is auto scheduled
+        const response = await axios.get(
+            `https://apiv2.shiprocket.in/v1/external/orders/show/${shiprocketOrderId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const shipData = response?.data?.data;
+
+        //if pickupup auto scheduled then update details in db
+        let pickupInfo = null;
+        if (shipData?.status === "PICKUP SCHEDULED") {
+            pickupInfo = {
+                pickupScheduled: true,
+                pickupDate: shipData?.shipments?.pickup_scheduled_date || shipData.pickup_date,
+                shippingStatus: "Pickup Scheduled",
+                expectedDeliveryDate: shipData?.shipments?.etd || null
+            }
+        }
+
         // Update DB
         await Order.findByIdAndUpdate(
             req.order._id,
             {
+                ...pickupInfo,
                 awbCode,
                 courierName,
                 courierAssignedAt: new Date(),
@@ -257,10 +277,47 @@ const generateManifest = async (req, res) => {
     }
 };
 
+const checkPickupStatus = async (shipmentId, token) => {
+    try {
+        const response = await axios.get(
+            `https://apiv2.shiprocket.in/v1/external/courier/track/shipment/${shipmentId}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = response?.data;
+        const status = data?.tracking_data?.shipment_track?.current_status;
+
+        // Match any status indicating pickup is done
+        // console.log("Pickup Data", data);
+        const pickupCompleted = [
+            'Pickup Completed',
+            "PICKED UP",
+            'In Transit',
+            'Shipment picked up',
+        ]?.some((s) => status?.toLowerCase()?.includes(s?.toLowerCase()));
+
+        return {
+            completed: pickupCompleted,
+            currentStatus: status,
+        };
+    } catch (err) {
+        console.error('Error checking pickup status:', err?.response?.data || err);
+        return {
+            completed: false,
+            error: true,
+        };
+    }
+};
+
 export {
     assignBestCourier,
     schedulePickup,
     generateLabel,
     generateManifest,
-    generateLabelAndManifestBackground
+    generateLabelAndManifestBackground,
+    checkPickupStatus
 }

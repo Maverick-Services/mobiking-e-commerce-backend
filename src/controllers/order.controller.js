@@ -10,6 +10,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { checkPickupStatus } from './shiprocket.controller.js';
 
 const razorpayConfig = () => {
     const razorpay = new Razorpay({
@@ -40,7 +41,9 @@ const createCodOrder = asyncHandler(async (req, res) => {
         if (
             !userId || !address || !cartId ||
             !name || !email || !phoneNo ||
-            !orderAmount || !deliveryCharge || !gst || !subtotal || !method
+            !orderAmount || !deliveryCharge ||
+            // !gst || 
+            !subtotal || !method
         ) {
             throw new ApiError(400, 'Required details not found.');
         }
@@ -191,7 +194,9 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
 
         if (
             !userId || !cartId || !name || !email || !phoneNo ||
-            !orderAmount || !subtotal || !deliveryCharge || !gst || !address
+            !orderAmount || !subtotal || !deliveryCharge ||
+            // !gst || 
+            !address
         ) {
             throw new ApiError(400, 'Required order details missing.');
         }
@@ -284,85 +289,6 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
         session.endSession();
     }
 });
-
-// const createOnlineOrder = asyncHandler(async (req, res) => {
-//     const session = await mongoose.startSession();
-
-//     try {
-//         const {
-//             userId, cartId,
-//             name, email, phoneNo,
-//             orderAmount,
-//             discount,
-//             deliveryCharge,
-//             gst,
-//             subtotal,
-//             address,
-//             isAppOrder
-//         } = req.body;
-
-//         if (
-//             !userId || !cartId || !name || !email || !phoneNo ||
-//             !orderAmount || !subtotal || !deliveryCharge || !gst || !address
-//         ) {
-//             throw new ApiError(400, 'Required order details missing.');
-//         }
-
-//         const cart = await Cart.findOne({ _id: cartId }).populate('items.productId');
-//         if (!cart || cart.items.length === 0) {
-//             throw new ApiError(400, 'Cart is empty or not found.');
-//         }
-
-//         const razorpay = await razorpayConfig();
-
-//         // 1️⃣ Create Razorpay Order
-//         const razorpayOrder = await razorpay.orders.create({
-//             amount: orderAmount * 100, // in paise
-//             currency: 'INR',
-//             receipt: `rcpt_${uuidv4().split('-')[0]}`,
-//             payment_capture: 1
-//         });
-
-//         // 2️⃣ Create Order in DB (status: Created)
-//         const newOrder = new Order({
-//             userId,
-//             name, email, phoneNo,
-//             address,
-//             method: 'Online',
-//             type: 'Regular',
-//             status: 'New',
-//             paymentStatus: 'Pending',
-//             isAppOrder,
-//             abondonedOrder: false,
-//             orderId: uuidv4().split('-')[0].toUpperCase(),
-//             razorpayOrderId: razorpayOrder.id,
-//             orderAmount,
-//             discount,
-//             deliveryCharge,
-//             gst,
-//             subtotal,
-//             items: cart.items
-//         });
-
-//         await newOrder.save({ session });
-
-//         return res.status(201).json(
-//             new ApiResponse(201, {
-//                 razorpayOrderId: razorpayOrder.id,
-//                 amount: razorpayOrder.amount,
-//                 currency: razorpayOrder.currency,
-//                 key: process.env.RAZORPAY_KEY_ID,
-//                 newOrderId: newOrder._id
-//             }, 'Razorpay Order Created')
-//         );
-
-//     } catch (err) {
-//         console.error('createOnlineOrder error:', err);
-//         return res.status(500).json({ message: err.message || 'Internal server error' });
-//     } finally {
-//         session.endSession();
-//     }
-// });
 
 const verifyPayment = async (req, res) => {
     const session = await mongoose.startSession();
@@ -641,6 +567,9 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
             throw new ApiError(400, 'Order does not exist');
         }
 
+        if (foundOrder && foundOrder?.status === "Cancelled")
+            return res.status(404).json({ message: 'Order is cancelled' });
+
         //Format the items name
         const order_items = foundOrder.items.map((item) => {
             const variant = item.variantName || ""; // e.g. "Red / XL"
@@ -650,7 +579,8 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
                 sku: uuidv4().split('-')[0].toUpperCase() || item?.productId?._id,
                 // sku: `${item.productId._id}-${variant.replace(/\s+/g, "_").toUpperCase()}`,
                 units: item.quantity,
-                selling_price: item.price
+                selling_price: item.price,
+                tax: item?.productId?.gst
             };
         });
 
@@ -730,6 +660,141 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
     }
 });
 
+// Utility: adjust stock back to inventory
+async function adjustStock(order) {
+    const ops = order.items.map(item => ({
+        updateOne: {
+            filter: { _id: item.productId },
+            update: {
+                $inc: {
+                    totalStock: item.quantity,
+                    [`variants.${item.variantName}`]: item.quantity
+                }
+            }
+        }
+    }));
+    await Product.bulkWrite(ops);
+}
+
+// 1️⃣ Cancel when order accepted but not created on Shiprocket
+const preShiprocketCancel = async (req, res, next) => {
+    const { orderId } = req.body;
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order && order?.status === "Cancelled") return res.status(404).json({ message: 'Order already cancelled' });
+    // Stage: accepted locally but no Shiprocket order
+    if (!order.shipmentId) {
+        order.status = 'Cancelled';
+        await order.save();
+        await adjustStock(order);
+        return res.json({ message: 'Order cancelled before Shiprocket creation, stock restored' });
+    }
+    req.order = order;
+    next();
+};
+
+// 2️⃣ Cancel when only Shiprocket order created, no AWB
+const createdCancel = async (req, res, next) => {
+    const order = req.order;
+    if (order?.shipmentId && !order?.awbCode) {
+        // Cancel Shiprocket order
+        await axios.post(
+            'https://apiv2.shiprocket.in/v1/external/orders/cancel',
+            { ids: [order.shiprocketOrderId] },
+            { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
+        );
+        order.status = 'Cancelled';
+        await order.save();
+        await adjustStock(order);
+        return res.json({ message: 'Order cancelled on Shiprocket before courier assignment, stock restored' });
+    }
+    next();
+};
+
+// 3️⃣ Cancel when AWB assigned but pickup not scheduled
+const awbCancel = async (req, res, next) => {
+    const order = req.order;
+    if (order?.awbCode && !order?.pickupDate) {
+        // await axios.delete(
+        //     'https://apiv2.shiprocket.in/v1/external/courier/assign/awb',
+        //     { headers: { Authorization: `Bearer ${req.shiprocketToken}` }, data: { shipment_id: order.shipmentId } }
+        // );
+        await axios.post(
+            'https://apiv2.shiprocket.in/v1/external/orders/cancel/shipment/awbs',
+            { awbs: [order?.awbCode] },
+            { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
+        );
+        await axios.post(
+            'https://apiv2.shiprocket.in/v1/external/orders/cancel',
+            { ids: [order?.shiprocketOrderId] },
+            { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
+        );
+        order.status = 'Cancelled';
+        await order.save();
+        await adjustStock(order);
+        return res.json({ message: 'Courier assigned and order cancelled, stock restored' });
+    }
+    next();
+};
+
+// 4️⃣ Cancel when pickup scheduled (or label generated)
+const postPickupCancel = async (req, res, next) => {
+    const order = req.order;
+
+    //If order is picked up then call next controller for rto
+    const pickupCheck = await checkPickupStatus(order?.shipmentId, req?.shiprocketToken);
+
+    if (pickupCheck?.completed) next();
+
+    if (order?.pickupDate && order?.shippingStatus === 'Pickup Scheduled') {
+        // Initiate RTO
+        // await axios.post(
+        //     'https://apiv2.shiprocket.in/v1/external/courier/rto',
+        //     { shipment_id: order.shipmentId },
+        //     { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
+        // );
+        await axios.post(
+            'https://apiv2.shiprocket.in/v1/external/orders/cancel/shipment/awbs',
+            { awbs: [order?.awbCode] },
+            { headers: { Authorization: `Bearer ${req?.shiprocketToken}` } }
+        );
+        await axios.post(
+            'https://apiv2.shiprocket.in/v1/external/orders/cancel',
+            { ids: [order?.shiprocketOrderId] },
+            { headers: { Authorization: `Bearer ${req?.shiprocketToken}` } }
+        );
+        order.status = 'Cancelled';
+        await order.save();
+        await adjustStock(order);
+        return res.json({ message: 'Pickup cancelled via RTO, stock will be restored on return' });
+    }
+    else
+        next();
+};
+
+// 5️⃣ Cancel when shipment picked up or in transit
+const inTransitCancel = async (req, res, next) => {
+    const order = req.order;
+    const inTransitStates = ['Shipped', 'In Transit', 'Picked Up'];
+    if (inTransitStates.includes(order.shippingStatus)) {
+        order.status = 'Cancelled';
+        await order.save();
+        // stock to be adjusted on return processing
+        return res.json({ message: 'Order marked cancelled; stock will restore upon return' });
+    }
+    next();
+};
+
+// 6️⃣ Cancel when delivered
+const deliveredCancel = async (req, res) => {
+    const order = req.order;
+    if (order.shippingStatus === 'Delivered') {
+        return res.status(400).json({ message: 'Cannot cancel after delivery' });
+    }
+    // fallback
+    return res.status(400).json({ message: 'Invalid cancellation stage' });
+};
+
 export {
     createCodOrder,
     createOnlineOrder,
@@ -737,5 +802,11 @@ export {
     getAllOrdersByUser,
     getAllOrders,
     createAbandonedOrderFromCart,
-    acceptOrder
+    acceptOrder,
+    preShiprocketCancel,
+    createdCancel,
+    awbCancel,
+    postPickupCancel,
+    inTransitCancel,
+    deliveredCancel
 }
