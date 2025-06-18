@@ -17,7 +17,8 @@ import {
     assignBestCourier,
     generateLabelAndManifestBackground,
     schedulePickup,
-    shiprocketWebhook
+    shiprocketWebhook,
+    verifyShiprocketToken
 } from "../controllers/shiprocket.controller.js";
 
 const router = Router()
@@ -53,6 +54,7 @@ router.route("/cancel").post(
 
 // Track order routes
 router.route('/webhook/shiprocket').post(
+    verifyShiprocketToken,
     shiprocketWebhook
 );
 

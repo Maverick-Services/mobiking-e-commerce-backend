@@ -313,6 +313,18 @@ const checkPickupStatus = async (shipmentId, token) => {
     }
 };
 
+// Middleware to validate Shiprocket webhook token
+const verifyShiprocketToken = (req, res, next) => {
+    const receivedToken = req.headers['x-api-key'];
+    const expectedToken = process.env.SHIPROCKET_WEBHOOK_TOKEN;
+
+    if (receivedToken !== expectedToken) {
+        return res.status(403).json({ error: 'Unauthorized: Invalid token' });
+    }
+
+    next();
+};
+
 const shiprocketWebhook = async (req, res) => {
     try {
         const payload = req.body;
@@ -335,5 +347,6 @@ export {
     generateManifest,
     generateLabelAndManifestBackground,
     checkPickupStatus,
-    shiprocketWebhook
+    shiprocketWebhook,
+    verifyShiprocketToken
 }
