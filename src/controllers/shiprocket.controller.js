@@ -314,7 +314,18 @@ const checkPickupStatus = async (shipmentId, token) => {
 };
 
 const shiprocketWebhook = async (req, res) => {
+    try {
+        const payload = req.body;
+        console.log("🚚 Shiprocket Webhook Received:", JSON.stringify(payload, null, 2));
 
+        // Save or process update in DB
+        // e.g. updateOrderStatus(payload.awb, payload.status)
+
+        res.status(200).json({ success: true });
+    } catch (err) {
+        console.error("Webhook Error:", err);
+        res.status(500).json({ success: false });
+    }
 }
 
 export {
