@@ -327,8 +327,12 @@ const verifyShiprocketToken = (req, res, next) => {
 
 const shiprocketWebhook = async (req, res) => {
     try {
-        const payload = req.body;
-        console.log("🚚 Shiprocket Webhook Received:", JSON.stringify(payload, null, 2));
+        let payload = req.body;
+        console.log("🚚 Shiprocket Webhook Received:", payload);
+        payload = JSON.stringify(payload, null, 2)
+        console.log("🚚 Stringified Shiprocket Webhook Received:", payload);
+
+
 
         // Save or process update in DB
         // e.g. updateOrderStatus(payload.awb, payload.status)

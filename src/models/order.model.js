@@ -23,13 +23,21 @@ const orderSchema = new mongoose.Schema(
             type: String,
             enum: [
                 "Pending",
+                "PENDING",
                 "Courier Assigned",
                 "Pickup Scheduled",
                 "In Transit",
+                "IN TRANSIT",
                 "Shipped",
                 "Delivered",
+                "CANCELLED",
+                "Cancelled"
             ],
             default: "Pending"
+        },
+        scans: {
+            type: mongoose.Schema.Types.Mixed,
+            default: []
         },
         paymentStatus: {
             type: String,
