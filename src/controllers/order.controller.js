@@ -772,7 +772,7 @@ const postPickupCancel = async (req, res, next) => {
         next();
 };
 
-// 5️⃣ Cancel when shipment picked up or in transit
+// 5️⃣ RTO when shipment picked up or in transit
 const inTransitCancel = async (req, res, next) => {
     const order = req.order;
     const inTransitStates = ['Shipped', 'In Transit', 'Picked Up'];
@@ -785,7 +785,7 @@ const inTransitCancel = async (req, res, next) => {
     next();
 };
 
-// 6️⃣ Cancel when delivered
+// 6️⃣ RTO when delivered
 const deliveredCancel = async (req, res) => {
     const order = req.order;
     if (order.shippingStatus === 'Delivered') {

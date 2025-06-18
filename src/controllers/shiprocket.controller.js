@@ -313,11 +313,16 @@ const checkPickupStatus = async (shipmentId, token) => {
     }
 };
 
+const shiprocketWebhook = async (req, res) => {
+
+}
+
 export {
     assignBestCourier,
     schedulePickup,
     generateLabel,
     generateManifest,
     generateLabelAndManifestBackground,
-    checkPickupStatus
+    checkPickupStatus,
+    shiprocketWebhook
 }

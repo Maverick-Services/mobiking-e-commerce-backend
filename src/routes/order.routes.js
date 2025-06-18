@@ -16,19 +16,20 @@ import {
 import {
     assignBestCourier,
     generateLabelAndManifestBackground,
-    schedulePickup
+    schedulePickup,
+    shiprocketWebhook
 } from "../controllers/shiprocket.controller.js";
 
 const router = Router()
 
-//Product Routes
+//Place Order Routes
 router.route("/cod/new").post(verifyJWT, createCodOrder);
 router.route("/online/new").post(verifyJWT, createOnlineOrder);
 router.route("/online/verify").post(verifyJWT, verifyPayment);
-
 router.route("/user").get(verifyJWT, getAllOrdersByUser);
 router.route("/").get(verifyJWT, getAllOrders);
 
+//Admin Order Routes
 router.route("/accept").post(
     verifyJWT,
     shiprocketAuth,
@@ -48,5 +49,11 @@ router.route("/cancel").post(
     inTransitCancel,
     deliveredCancel
 )
+
+
+// Track order routes
+router.route('/webhook/shiprocket').post(
+    shiprocketWebhook
+);
 
 export default router;
