@@ -53,7 +53,7 @@ router.route("/cancel").post(
 
 
 // Track order routes
-router.route('/webhook/shiprocket').post(
+router.route('/webhook').post(
     verifyShiprocketToken,
     shiprocketWebhook
 );
