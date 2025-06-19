@@ -687,7 +687,7 @@ const preShiprocketCancel = async (req, res, next) => {
         order.status = 'Cancelled';
         await order.save();
         await adjustStock(order);
-        return res.json({ message: 'Order cancelled before Shiprocket creation, stock restored' });
+        return res.json({ message: 'Order cancelled, stock restored' });
     }
     req.order = order;
     next();
@@ -706,7 +706,7 @@ const createdCancel = async (req, res, next) => {
         order.status = 'Cancelled';
         await order.save();
         await adjustStock(order);
-        return res.json({ message: 'Order cancelled on Shiprocket before courier assignment, stock restored' });
+        return res.json({ message: 'Order cancelled on Shiprocket, stock restored' });
     }
     next();
 };
@@ -715,10 +715,6 @@ const createdCancel = async (req, res, next) => {
 const awbCancel = async (req, res, next) => {
     const order = req.order;
     if (order?.awbCode && !order?.pickupDate) {
-        // await axios.delete(
-        //     'https://apiv2.shiprocket.in/v1/external/courier/assign/awb',
-        //     { headers: { Authorization: `Bearer ${req.shiprocketToken}` }, data: { shipment_id: order.shipmentId } }
-        // );
         await axios.post(
             'https://apiv2.shiprocket.in/v1/external/orders/cancel/shipment/awbs',
             { awbs: [order?.awbCode] },
@@ -732,7 +728,7 @@ const awbCancel = async (req, res, next) => {
         order.status = 'Cancelled';
         await order.save();
         await adjustStock(order);
-        return res.json({ message: 'Courier assigned and order cancelled, stock restored' });
+        return res.json({ message: 'Courier and order cancelled, stock restored' });
     }
     next();
 };
@@ -766,7 +762,7 @@ const postPickupCancel = async (req, res, next) => {
         order.status = 'Cancelled';
         await order.save();
         await adjustStock(order);
-        return res.json({ message: 'Pickup cancelled via RTO, stock will be restored on return' });
+        return res.json({ message: 'Pickup and Order cancelled, stock restored' });
     }
     else
         next();
