@@ -40,7 +40,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
 
         if (
             !userId || !address || !cartId ||
-            !name || !email || !phoneNo ||
+            !name || !phoneNo ||
             !orderAmount || !deliveryCharge ||
             // !gst || 
             !subtotal || !method
@@ -194,7 +194,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
 
         // console.log("GST", gst);
         if (
-            !userId || !cartId || !name || !email || !phoneNo ||
+            !userId || !cartId || !name || !phoneNo ||
             !orderAmount || !subtotal || !deliveryCharge ||
             // !gst || 
             !address
@@ -597,7 +597,7 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
             billing_pincode: foundOrder.addressId?.pinCode,
             billing_state: foundOrder.addressId?.state,
             billing_country: "India",
-            billing_email: foundOrder.email,
+            billing_email: foundOrder.email ? foundOrder.email : "",
             billing_phone: foundOrder.phoneNo,
             shipping_is_billing: true,
             order_items,                                   // ← variant‑aware items
@@ -627,7 +627,6 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
         let updatedOrder = await Order.findByIdAndUpdate(
             foundOrder?._id,
             {
-                status: 'Accepted',
                 shipmentId: data?.shipment_id,
                 shiprocketOrderId: data?.order_id,
                 shiprocketChannelId: data?.channel_order_id,

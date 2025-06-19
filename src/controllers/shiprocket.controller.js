@@ -58,7 +58,8 @@ const assignBestCourier = async (req, res, next) => {
                 pickupScheduled: true,
                 pickupDate: shipData?.shipments?.pickup_scheduled_date || shipData.pickup_date,
                 shippingStatus: "Pickup Scheduled",
-                expectedDeliveryDate: shipData?.shipments?.etd || null
+                expectedDeliveryDate: shipData?.shipments?.etd || null,
+                status: 'Accepted'
             }
         }
 
@@ -146,9 +147,10 @@ const schedulePickup = async (req, res, next) => {
                 pickupTokenNumber,
                 pickupDate,
                 pickupSlot: pickupSlot || null,
-                // status: "Shipped",
+                status: 'Accepted',
                 shippingStatus: "Pickup Scheduled",
                 expectedDeliveryDate: trackData?.data?.tracking_data?.etd || null
+                // status: "Shipped",
             },
             { new: true }
         );
