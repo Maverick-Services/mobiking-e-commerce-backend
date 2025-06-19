@@ -174,8 +174,34 @@ const getHomeLayout = asyncHandler(async (req, res) => {
     );
 })
 
+const getAllHomeLayout = asyncHandler(async (req, res) => {
+    const allLayouts = await Home.find({}).sort({ createdAt: -1 })
+        .populate('groups')
+        .populate({
+            path: 'groups',
+            populate: {
+                path: 'products',
+                model: 'Product',
+                populate: {
+                    path: 'category',
+                    model: 'SubCategory'
+                }
+            }
+        })
+        .exec();
+
+    if (!allLayouts) {
+        throw new ApiError(400, "No layouts Found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allLayouts, "Home Layouts fetched successfully")
+    );
+})
+
 export {
     createHome,
+    editHomeLayout,
     getHomeLayout,
-    editHomeLayout
+    getAllHomeLayout
 }
