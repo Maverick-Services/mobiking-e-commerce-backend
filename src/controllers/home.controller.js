@@ -98,12 +98,19 @@ const editHomeLayout = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Categories not found");
     }
 
+    // check if home layout exist
+    const foundHomeLayout = await Home.findById(homeId)
+
+    if (!foundHomeLayout) {
+        throw new ApiError(400, "Home Layout does not exit");
+    }
+
     //create new Home
     const updatedHomeLayout = await Home.findByIdAndUpdate(
         homeId,
         {
             active,
-            banners: banners ? banners : [],
+            banners: banners ? banners : foundHomeLayout?.banners,
             groups,
             categories
         },
