@@ -9,6 +9,10 @@ const homeSchema = new mongoose.Schema({
         type: String,
         required: true
     }],
+    categories: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SubCategory',
+    }],
     groups: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Group',

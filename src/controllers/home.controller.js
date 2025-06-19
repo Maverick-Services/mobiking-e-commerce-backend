@@ -5,33 +5,26 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const createHome = asyncHandler(async (req, res) => {
-    let { groups, active, banners } = req.body;
+    let {
+        categories,
+        groups,
+        active,
+        banners
+    } = req.body;
 
     if (
-        !groups && !groups.length
+        !groups && !groups?.length
     ) {
         throw new ApiError(400, "Groups not found");
     }
 
-    // let banners = [];
+    if (
+        !categories && !categories?.length
+    ) {
+        throw new ApiError(400, "Categories not found");
+    }
 
-    // if (Array.isArray(req.files?.banners) && req.files.banners.length > 0) {
-    //     const uploadPromises = req.files.banners.map(async (fl) => {
-    //         const filePath = fl?.path;
-    //         const banner = await uploadOnCloudinary(filePath);
-    //         return banner;
-    //     });
-
-    //     banners = await Promise.all(uploadPromises); // ✅ Wait for all uploads
-    //     banners = banners?.map(ph => ph?.secure_url);
-    // }
-
-    // if (!banners || !banners?.length) {
-    //     throw new ApiError(400, "Banners are Required");
-    // }
-
-    //create new product
-
+    //create new Home
     const newHomeLayout = await Home.create({
         active,
         banners: banners ? banners : []
@@ -44,7 +37,8 @@ const createHome = asyncHandler(async (req, res) => {
         newHomeLayout?._id,
         {
             $push: {
-                groups: groups
+                groups: groups,
+                categories: categories
             }
         },
         { new: true }
@@ -61,11 +55,88 @@ const createHome = asyncHandler(async (req, res) => {
                 }
             }
         })
+        .populate({
+            path: 'categories',
+            populate: {
+                path: 'products',
+                model: 'Product'
+            }
+        })
         .exec();
 
     //return response
     return res.status(201).json(
         new ApiResponse(201, homeLayout, "Home layout created Successfully")
+    )
+});
+
+const editHomeLayout = asyncHandler(async (req, res) => {
+    let {
+        categories,
+        groups,
+        active,
+        banners
+    } = req.body;
+
+    const homeId = req.params?._id;
+
+    if (
+        !homeId
+    ) {
+        throw new ApiError(400, "Home Layout Id not found");
+    }
+
+    if (
+        !groups && !groups.length
+    ) {
+        throw new ApiError(400, "Groups not found");
+    }
+
+    if (
+        !categories && !categories.length
+    ) {
+        throw new ApiError(400, "Categories not found");
+    }
+
+    //create new Home
+    const updatedHomeLayout = await Home.findByIdAndUpdate(
+        homeId,
+        {
+            active,
+            banners: banners ? banners : [],
+            groups,
+            categories
+        },
+        { new: true }
+    )
+        .populate('groups')
+        .populate({
+            path: 'groups',
+            populate: {
+                path: 'products',
+                model: 'Product',
+                populate: {
+                    path: 'category',
+                    model: 'SubCategory'
+                }
+            }
+        })
+        .populate({
+            path: 'categories',
+            populate: {
+                path: 'products',
+                model: 'Product'
+            }
+        })
+        .exec();
+
+    if (!updatedHomeLayout) {
+        throw new ApiError(409, "Could not update home layout");
+    }
+
+    //return response
+    return res.status(200).json(
+        new ApiResponse(200, updatedHomeLayout, "Home layout updated Successfully")
     )
 });
 
@@ -98,5 +169,6 @@ const getHomeLayout = asyncHandler(async (req, res) => {
 
 export {
     createHome,
-    getHomeLayout
+    getHomeLayout,
+    editHomeLayout
 }
