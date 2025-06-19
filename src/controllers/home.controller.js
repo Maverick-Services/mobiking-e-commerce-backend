@@ -55,13 +55,7 @@ const createHome = asyncHandler(async (req, res) => {
                 }
             }
         })
-        .populate({
-            path: 'categories',
-            populate: {
-                path: 'products',
-                model: 'Product'
-            }
-        })
+        .populate("categories")
         .exec();
 
     //return response
@@ -87,16 +81,22 @@ const editHomeLayout = asyncHandler(async (req, res) => {
     }
 
     if (
-        !groups && !groups.length
+        groups && !groups?.length
     ) {
-        throw new ApiError(400, "Groups not found");
+        throw new ApiError(400, "No groups sent");
     }
 
     if (
-        !categories && !categories.length
+        categories && !categories?.length
     ) {
-        throw new ApiError(400, "Categories not found");
+        throw new ApiError(400, "No categories sent");
     }
+
+    // if (
+    //     !categories && !categories?.length
+    // ) {
+    //     throw new ApiError(400, "Categories not found");
+    // }
 
     // check if home layout exist
     const foundHomeLayout = await Home.findById(homeId)
@@ -111,8 +111,8 @@ const editHomeLayout = asyncHandler(async (req, res) => {
         {
             active: active ? active : foundHomeLayout?.active,
             banners: banners ? banners : foundHomeLayout?.banners,
-            groups,
-            categories
+            groups: groups ? groups : foundHomeLayout?.groups,
+            categories: categories ? categories : foundHomeLayout?.categories
         },
         { new: true }
     )
@@ -128,13 +128,7 @@ const editHomeLayout = asyncHandler(async (req, res) => {
                 }
             }
         })
-        .populate({
-            path: 'categories',
-            populate: {
-                path: 'products',
-                model: 'Product'
-            }
-        })
+        .populate("categories")
         .exec();
 
     if (!updatedHomeLayout) {
@@ -163,6 +157,7 @@ const getHomeLayout = asyncHandler(async (req, res) => {
                 }
             }
         })
+        .populate("categories")
         .exec();
 
     if (!latestLayout) {
@@ -188,6 +183,7 @@ const getAllHomeLayout = asyncHandler(async (req, res) => {
                 }
             }
         })
+        .populate("categories")
         .exec();
 
     if (!allLayouts) {
