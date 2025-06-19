@@ -192,6 +192,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             isAppOrder
         } = req.body;
 
+        // console.log("GST", gst);
         if (
             !userId || !cartId || !name || !email || !phoneNo ||
             !orderAmount || !subtotal || !deliveryCharge ||

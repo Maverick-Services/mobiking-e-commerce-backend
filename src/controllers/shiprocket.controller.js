@@ -329,10 +329,15 @@ const shiprocketWebhook = async (req, res) => {
     try {
         let payload = req.body;
         console.log("🚚 Shiprocket Webhook Received:", payload);
-        payload = JSON.stringify(payload, null, 2)
-        console.log("🚚 Stringified Shiprocket Webhook Received:", payload);
+        // payload = JSON.stringify(payload, null, 2)
+        // console.log("🚚 Stringified Shiprocket Webhook Received:", payload);
 
+        if (
+            payload?.current_status != "NEW" ||
+            (payload?.shipment_status && payload?.shipment_status != "PENDING")
+        ) {
 
+        }
 
         // Save or process update in DB
         // e.g. updateOrderStatus(payload.awb, payload.status)
