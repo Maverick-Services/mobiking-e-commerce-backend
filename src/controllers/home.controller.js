@@ -7,10 +7,6 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 const createHome = asyncHandler(async (req, res) => {
     let { groups, active, banners } = req.body;
 
-    //Validate details
-    if (groups)
-        groups = JSON.parse(groups);
-
     if (
         !groups && !groups.length
     ) {
