@@ -109,7 +109,7 @@ const editHomeLayout = asyncHandler(async (req, res) => {
     const updatedHomeLayout = await Home.findByIdAndUpdate(
         homeId,
         {
-            active,
+            active: active ? active : foundHomeLayout?.active,
             banners: banners ? banners : foundHomeLayout?.banners,
             groups,
             categories
