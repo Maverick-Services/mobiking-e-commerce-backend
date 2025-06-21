@@ -11,7 +11,8 @@ import {
     awbCancel,
     postPickupCancel,
     inTransitCancel,
-    deliveredCancel
+    deliveredCancel,
+    createPosOrder
 } from "../controllers/order.controller.js";
 import {
     assignBestCourier,
@@ -24,6 +25,7 @@ import {
 const router = Router()
 
 //Place Order Routes
+router.route("/pos/new").post(verifyJWT, createPosOrder);
 router.route("/cod/new").post(verifyJWT, createCodOrder);
 router.route("/online/new").post(verifyJWT, createOnlineOrder);
 router.route("/online/verify").post(verifyJWT, verifyPayment);
