@@ -697,7 +697,7 @@ const updateRequestStatus = (requests, reason) => {
             r.isResolved = true;
             r.status = "Accepted";
             r.resolvedAt = new Date().toISOString();
-            r.reason = reason;
+            r.reason = r?.reason ? r.reason : reason;
         }
         return r;
     });
