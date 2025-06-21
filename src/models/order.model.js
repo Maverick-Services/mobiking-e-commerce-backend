@@ -1,6 +1,31 @@
 import mongoose from "mongoose";
 import { itemsSchema } from "./cart.model.js";
 
+const requestSchema = new mongoose.Schema({
+    type: {
+        type: String,
+        enum: [
+            "Cancel",
+            "Warranty",
+            "Return"
+        ]
+    },
+    isRaised: { type: Boolean, default: false },
+    raisedAt: { type: String },
+    isResolved: { type: Boolean, default: false },
+    status: {
+        type: String,
+        enum: [
+            "Pending",
+            "Accepted",
+            "Rejected"
+        ],
+        default: "Pending"
+    },
+    resolvedAt: { type: String },
+    reason: { type: String },
+}, { timestamps: true }, { _id: false })
+
 const orderSchema = new mongoose.Schema(
     {
         /****************  CORE ORDER STATES  *****************/
@@ -19,6 +44,7 @@ const orderSchema = new mongoose.Schema(
             ],
             default: "New"
         },
+        holdReason: { type: String },
         shippingStatus: {
             type: String,
             enum: [
@@ -64,11 +90,14 @@ const orderSchema = new mongoose.Schema(
         shippingLabelUrl: String,  // e.g. “14:00‑18:00”
         shippingManifestUrl: String,  // e.g. “14:00‑18:00”
 
-        deliveredAt: Date,    // set when status → Delivered
+        deliveredAt: String,    // set when status → Delivered
 
         /****************  PAYMENT FIELDS  *****************/
         razorpayOrderId: String,
         razorpayPaymentId: String,
+
+        /****************  ORDER REQUESTS  *****************/
+        requests: [requestSchema],
 
         /****************  ORDER METADATA  *****************/
         orderId: {
@@ -126,137 +155,3 @@ const orderSchema = new mongoose.Schema(
 );
 
 export const Order = mongoose.model("Order", orderSchema);
-
-// import mongoose from "mongoose";
-// import { itemsSchema } from './cart.model.js';
-
-// const orderSchema = new mongoose.Schema({
-
-//     status: {
-//         type: String,
-//         enum: [
-//             "New",
-//             "Accepted",
-//             "Courier Assigned",
-//             "Pickup Scheduled",
-//             "Shipped",
-//             "Delivered",
-//             "Rejected",
-//             "Cancelled",
-//             "Returned",
-//             "Replaced",
-//             "Hold"
-//         ],
-//         default: 'New'
-//     },
-//     paymentStatus: {
-//         type: String,
-//         enum: ['Pending', 'Paid'],
-//         default: 'Pending'
-//     },
-//     type: {
-//         type: String,
-//         enum: ['Regular', 'Pos'],
-//         default: 'Regular'
-//     },
-//     method: {
-//         type: String,
-//         enum: ['COD', 'Online'],
-//         default: 'COD',
-//         // required: true
-//     },
-//     isAppOrder: {
-//         type: Boolean,
-//         default: false
-//     },
-//     abondonedOrder: {
-//         type: Boolean,
-//         default: true
-//     },
-//     orderId: {
-//         type: String,
-//         required: true,
-//         unique: true
-//     },
-//     /****************  SHIPROCKET FIELDS  *****************/
-//     shipmentId: String,  // Shiprocket shipment_id
-//     shiprocketOrderId: String,  // Shiprocket order_id
-//     shiprocketChannelId: String,  // Channel order ref
-//     shippingStatus: String,  // Last tracking status
-//     awbCode: String,  // Air‑way bill
-//     courierName: String,
-//     courierAssignedAt: Date,
-
-//     pickupScheduled: {
-//         type: Boolean,
-//         default: false
-//     },
-//     pickupDate: String,  // “2025‑06‑14”
-//     pickupSlot: String,  // e.g. “14:00‑18:00”
-
-//     deliveredAt: Date,    // set when status → Delivered
-
-//     /****************  PAYMENT FIELDS  *****************/
-//     razorpayOrderId: String,
-//     razorpayPaymentId: String,
-//     address: {
-//         type: String,
-//         required: true,
-//     },
-//     razorpayOrderId: {
-//         type: String,
-//         // required: true,
-//         // unique: true
-//     },
-//     razorpayPaymentId: {
-//         type: String,
-//         // required: true,
-//         // unique: true
-//     },
-//     orderAmount: {
-//         type: Number,
-//         required: true
-//     },
-//     name: {
-//         type: String,
-//         // required: true
-//     },
-//     email: {
-//         type: String,
-//         // required: true
-//     },
-//     phoneNo: {
-//         type: String,
-//         // required: true
-//     },
-//     deliveryCharge: {
-//         type: Number,
-//         default: 0
-//     },
-//     discount: {
-//         type: Number,
-//         default: 0
-//     },
-//     gst: {
-//         type: Number,
-//         default: 0
-//     },
-//     subtotal: {
-//         type: Number,
-//     },
-
-//     addressId: {
-//         type: mongoose.Schema.Types.ObjectId,
-//         ref: 'Address',
-//         // required: true
-//     },
-//     userId: {
-//         type: mongoose.Schema.Types.ObjectId,
-//         ref: 'User',
-//         required: true
-//     },
-//     items: [itemsSchema]
-
-// }, { timestamps: true });
-
-// export const Order = mongoose.model('Order', orderSchema);

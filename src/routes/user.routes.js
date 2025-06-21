@@ -7,6 +7,7 @@ import {
     getUsersByRole,
     loginUser,
     logoutUser,
+    placeCancelRequest,
     refreshAccessToken
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
@@ -40,5 +41,8 @@ router.route("/address/add").post(verifyJWT, createAddress);
 router.route("/address/:_id").put(verifyJWT, editAddress);
 router.route("/address/:_id").delete(verifyJWT, deleteAddress);
 router.route("/address/view").get(verifyJWT, getAllAddressByUser);
+
+//Order Routes
+router.route("/request/cancel").post(verifyJWT, placeCancelRequest);
 
 export default router

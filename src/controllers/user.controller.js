@@ -5,6 +5,12 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import { ROLES } from "../constants.js";
 import { Cart } from "../models/cart.model.js";
+import { Order } from "../models/order.model.js";
+
+
+// ******************************************************
+//                  USER AUTH CONTROLLERS
+// ******************************************************
 
 const generateAccessAndRefereshTokens = async (userId) => {
     try {
@@ -227,6 +233,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 
 })
+
+
+// **********************************************************
+//              USER MANAGEMENT CONTROLLERS FOR ADMIN
+// **********************************************************
 
 const createEmployee = asyncHandler(async (req, res) => {
     // get user details from frontend
@@ -471,6 +482,268 @@ const getUserById = asyncHandler(async (req, res) => {
     )
 });
 
+
+// ******************************************************
+//                  PLACE REQUEST CONTROLLERS
+// ******************************************************
+
+const placeCancelRequest = asyncHandler(async (req, res) => {
+    const { type, reason, orderId } = req.body;
+
+    /* -------------------------- 1. basic validation -------------------------- */
+    if (
+        // !type || 
+        !reason || !orderId) {
+        throw new ApiError(400, "Complete details not found");
+    }
+
+    // if (type !== "Cancel") {
+    //     throw new ApiError(400, "Only type = 'Cancel' is supported here");
+    // }
+
+    /* --------------------------- 2. fetch the order -------------------------- */
+    const foundOrder = await Order.findById(orderId)
+        .populate({ path: "userId", select: "-password -refreshToken" })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: { path: "category", model: "SubCategory" },
+        })
+        .populate("addressId")
+        .exec();
+
+    if (!foundOrder) throw new ApiError(404, "Order does not exist");
+
+    /* --------------------- 3. ensure the order is cancellable ---------------- */
+    const cancellableStates = ["New", "Accepted", "Shipped"]; // adjust as needed
+    if (!cancellableStates.includes(foundOrder.status)) {
+        throw new ApiError(
+            409,
+            `Order cannot be cancelled once it is ${foundOrder.status}`
+        );
+    }
+
+    /* --------------------- 3. ensure the order is shipped, pickedup, in transit or delivered ---------------- */
+    if (![
+        "Pending",
+        "PENDING",
+        "Courier Assigned",
+        "Pickup Scheduled"
+    ].includes(foundOrder?.shippingStatus)
+    ) {
+        throw new ApiError(
+            409,
+            `Order cannot be cancelled once shipment is ${foundOrder.status}`
+        );
+    }
+
+    /* --------------- 4. block duplicate / unresolved requests --------------- */
+    const alreadyRaised = foundOrder.requests.some(
+        (r) => r.type === "Cancel"
+        // && !r.isResolved
+    );
+    if (alreadyRaised) {
+        throw new ApiError(
+            409,
+            "A cancellation request is already placed for this order"
+        );
+    }
+
+    /* --------------- 4. block if return requests placed already --------------- */
+    const reutrnRaised = foundOrder.requests.some(
+        (r) => r?.type === "Return" ||
+            (!r?.isResolved || (r?.isResolved && r?.status == "Rejected"))
+    );
+    if (reutrnRaised) {
+        throw new ApiError(
+            409,
+            "A return request is already in placed for this order"
+        );
+    }
+
+    const warrantyRaised = foundOrder.requests.some(
+        (r) => r?.type === "Warranty" && !r?.isResolved
+    );
+    if (warrantyRaised) {
+        throw new ApiError(
+            409,
+            "A warranty request is already pending for this order"
+        );
+    }
+
+    /* ------------------------- 5. build request object ----------------------- */
+    const newRequest = {
+        type: "Cancel",
+        isRaised: true,
+        raisedAt: new Date().toISOString(),
+        isResolved: false,
+        status: "Pending",
+        reason,
+    };
+
+    /* -------- 6. atomically push the request & (optionally) mark on hold ----- */
+    const updatedOrder = await Order.findByIdAndUpdate(
+        orderId,
+        {
+            $push: { requests: newRequest },
+            // Optional: put order on hold until the request is processed
+            // status: "Hold",
+            // holdReason: "Cancellation requested",
+        },
+        { new: true }
+    )
+        .populate({ path: "userId", select: "-password -refreshToken" })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: { path: "category", model: "SubCategory" },
+        })
+        .populate("addressId")
+        .exec();
+
+    if (!updatedOrder)
+        throw new ApiError(500, "Could not attach cancel request to order");
+
+    /* ------------------------------- 7. respond ------------------------------ */
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, updatedOrder, "Cancellation request placed successfully")
+        );
+});
+
+const placeReturnRequest = asyncHandler(async (req, res) => {
+
+})
+
+const placeWarrantyRequest = asyncHandler(async (req, res) => {
+    const { type, reason, orderId } = req.body;
+
+    /* -------------------------- 1. basic validation -------------------------- */
+    if (
+        // !type || 
+        !reason || !orderId) {
+        throw new ApiError(400, "Complete details not found");
+    }
+
+    // if (type !== "Warranty") {
+    //     throw new ApiError(400, "Only type = 'Cancel' is supported here");
+    // }
+
+    /* --------------------------- 2. fetch the order -------------------------- */
+    const foundOrder = await Order.findById(orderId)
+        .populate({ path: "userId", select: "-password -refreshToken" })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: { path: "category", model: "SubCategory" },
+        })
+        .populate("addressId")
+        .exec();
+
+    if (!foundOrder) throw new ApiError(404, "Order does not exist");
+
+    /* --------------------- 3. ensure the order is in valid state for return ---------------- */
+    const cancellableStates = ["Delivered"]; // adjust as needed
+    if (
+        !cancellableStates.includes(foundOrder.status) ||
+        !cancellableStates.includes(foundOrder?.shippingStatus)
+    ) {
+        throw new ApiError(
+            409,
+            `Warranty cannot be request until order is delivered`
+        );
+    }
+
+    /* --------------------- 3. ensure the order is shipped, pickedup, in transit or delivered ---------------- */
+    // if (![
+    //     "Pending",
+    //     "PENDING",
+    //     "Courier Assigned",
+    //     "Pickup Scheduled"
+    // ].includes(foundOrder?.shippingStatus)
+    // ) {
+    //     throw new ApiError(
+    //         409,
+    //         `Order cannot be cancelled once shipment is ${foundOrder.status}`
+    //     );
+    // }
+
+    /* --------------- 4. block duplicate / unresolved requests --------------- */
+    const alreadyRaised = foundOrder.requests.some(
+        (r) => r.type === "Cancel"
+        // && !r.isResolved
+    );
+    if (alreadyRaised) {
+        throw new ApiError(
+            409,
+            "A cancellation request is already placed for this order"
+        );
+    }
+
+    /* --------------- 4. block if return requests placed already --------------- */
+    const reutrnRaised = foundOrder.requests.some(
+        (r) => r?.type === "Return" ||
+            (!r?.isResolved || (r?.isResolved && r?.status == "Rejected"))
+    );
+    if (reutrnRaised) {
+        throw new ApiError(
+            409,
+            "A return request is already placed for this order"
+        );
+    }
+
+    const warrantyRaised = foundOrder.requests.some(
+        (r) => r?.type === "Warranty" && !r?.isResolved
+    );
+    if (warrantyRaised) {
+        throw new ApiError(
+            409,
+            "A warranty request is already placed for this order"
+        );
+    }
+
+    /* ------------------------- 5. build request object ----------------------- */
+    const newRequest = {
+        type: "Warranty",
+        isRaised: true,
+        raisedAt: new Date().toISOString(),
+        isResolved: false,
+        status: "Pending",
+        reason,
+    };
+
+    /* -------- 6. atomically push the request & (optionally) mark on hold ----- */
+    const updatedOrder = await Order.findByIdAndUpdate(
+        orderId,
+        {
+            $push: { requests: newRequest },
+            // Optional: put order on hold until the request is processed
+            // status: "Hold",
+            // holdReason: "Cancellation requested",
+        },
+        { new: true }
+    )
+        .populate({ path: "userId", select: "-password -refreshToken" })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: { path: "category", model: "SubCategory" },
+        })
+        .populate("addressId")
+        .exec();
+
+    if (!updatedOrder)
+        throw new ApiError(500, "Could not Warranty request to order");
+
+    /* ------------------------------- 7. respond ------------------------------ */
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, updatedOrder, "Warranty request placed successfully")
+        );
+})
+
 export {
     loginUser,
     logoutUser,
@@ -479,5 +752,8 @@ export {
     editEmployee,
     deleteEmployee,
     getUsersByRole,
-    getUserById
+    getUserById,
+    placeCancelRequest,
+    placeReturnRequest,
+    placeWarrantyRequest
 }

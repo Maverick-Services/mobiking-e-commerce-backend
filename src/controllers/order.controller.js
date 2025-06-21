@@ -20,6 +20,10 @@ const razorpayConfig = () => {
     return razorpay;
 }
 
+// ******************************************************
+//                  PLACE AND ACCEPT ORDER CONTROLLERS
+// ******************************************************
+
 const createCodOrder = asyncHandler(async (req, res) => {
     const session = await mongoose.startSession();
 
@@ -437,106 +441,6 @@ const verifyPayment = async (req, res) => {
     }
 };
 
-const getAllOrdersByUser = asyncHandler(async (req, res) => {
-
-    // console.log("User", req?.user?._id);
-    const userOrders = await Order.find(
-        { userId: req?.user?._id, abondonedOrder: false },
-        // {  }
-    )
-        .populate({
-            path: "userId",
-            select: "-password -refreshToken"
-        })
-        .populate({
-            path: "items.productId",
-            model: "Product",
-            populate: {
-                path: "category",  // This is the key part
-                model: "SubCategory"
-            }
-        })
-        .exec();
-
-    if (!userOrders) {
-        throw new ApiError(500, "Something went wrong while fetching the orders")
-    }
-
-    return res.status(200).json(
-        new ApiResponse(200, userOrders, "Orders fetched successfully")
-    )
-
-})
-
-const getAllOrders = asyncHandler(async (req, res) => {
-    const allOrder = await Order.find({})
-        .populate({
-            path: 'userId',
-            select: "-password -refreshToken"
-        })
-        .populate({
-            path: "items.productId",
-            model: "Product",
-            populate: {
-                path: "category",  // This is the key part
-                model: "SubCategory"
-            }
-        })
-        .exec();
-
-    if (!allOrder) {
-        throw new ApiError(409, "Could not find orders");
-    }
-
-    return res.status(200).json(
-        new ApiResponse(200, allOrder, "Orders fetched Successfully")
-    )
-});
-
-const createAbandonedOrderFromCart = async (cartId, userId, address) => {
-    if (!cartId || !userId || !address) {
-        throw new Error("Cart ID, User ID, and address are required.");
-    }
-
-    const cart = await Cart.findById(cartId).populate("items.productId");
-    if (!cart || cart.items.length === 0) {
-        throw new Error("Cart not found or empty.");
-    }
-
-    let subtotal = 0;
-    cart.items.forEach(item => {
-        subtotal += item.quantity * item.price;
-    });
-
-    const deliveryCharge = subtotal >= 500 ? 0 : 40;
-    const discount = 0;
-    const gst = parseFloat((subtotal * 0.18).toFixed(2));
-    const orderAmount = subtotal + gst + deliveryCharge - discount;
-
-    const newOrder = new Order({
-        orderId: `ORD-${uuidv4()}`,
-        userId,
-        orderAmount,
-        address,
-        deliveryCharge,
-        discount,
-        gst,
-        subtotal,
-        abondonedOrder: true,
-        isAppOrder: false,
-        method: "COD",
-        items: cart.items.map(item => ({
-            productId: item.productId._id,
-            variantName: item.variantName,
-            quantity: item.quantity,
-            price: item.price,
-        })),
-    });
-
-    await newOrder.save();
-    return newOrder;
-};
-
 const acceptOrder = asyncHandler(async (req, res, next) => {
     try {
         const { shiprocketToken } = req;
@@ -660,6 +564,117 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
     }
 });
 
+
+
+// ******************************************************
+//                  FETCH ORDERS CONTROLLERS
+// ******************************************************
+
+const getAllOrdersByUser = asyncHandler(async (req, res) => {
+
+    // console.log("User", req?.user?._id);
+    const userOrders = await Order.find(
+        { userId: req?.user?._id, abondonedOrder: false },
+        // {  }
+    )
+        .populate({
+            path: "userId",
+            select: "-password -refreshToken"
+        })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: {
+                path: "category",  // This is the key part
+                model: "SubCategory"
+            }
+        })
+        .exec();
+
+    if (!userOrders) {
+        throw new ApiError(500, "Something went wrong while fetching the orders")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, userOrders, "Orders fetched successfully")
+    )
+
+})
+
+const getAllOrders = asyncHandler(async (req, res) => {
+    const allOrder = await Order.find({})
+        .populate({
+            path: 'userId',
+            select: "-password -refreshToken"
+        })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: {
+                path: "category",  // This is the key part
+                model: "SubCategory"
+            }
+        })
+        .exec();
+
+    if (!allOrder) {
+        throw new ApiError(409, "Could not find orders");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allOrder, "Orders fetched Successfully")
+    )
+});
+
+const createAbandonedOrderFromCart = async (cartId, userId, address) => {
+    if (!cartId || !userId || !address) {
+        throw new Error("Cart ID, User ID, and address are required.");
+    }
+
+    const cart = await Cart.findById(cartId).populate("items.productId");
+    if (!cart || cart.items.length === 0) {
+        throw new Error("Cart not found or empty.");
+    }
+
+    let subtotal = 0;
+    cart.items.forEach(item => {
+        subtotal += item.quantity * item.price;
+    });
+
+    const deliveryCharge = subtotal >= 500 ? 0 : 40;
+    const discount = 0;
+    const gst = parseFloat((subtotal * 0.18).toFixed(2));
+    const orderAmount = subtotal + gst + deliveryCharge - discount;
+
+    const newOrder = new Order({
+        orderId: `ORD-${uuidv4()}`,
+        userId,
+        orderAmount,
+        address,
+        deliveryCharge,
+        discount,
+        gst,
+        subtotal,
+        abondonedOrder: true,
+        isAppOrder: false,
+        method: "COD",
+        items: cart.items.map(item => ({
+            productId: item.productId._id,
+            variantName: item.variantName,
+            quantity: item.quantity,
+            price: item.price,
+        })),
+    });
+
+    await newOrder.save();
+    return newOrder;
+};
+
+
+// ******************************************************
+//                  ORDER CANCELLATION CONTROLLERS
+// ******************************************************
+
 // Utility: adjust stock back to inventory
 async function adjustStock(order) {
     const ops = order.items.map(item => ({
@@ -676,15 +691,31 @@ async function adjustStock(order) {
     await Product.bulkWrite(ops);
 }
 
+const updateRequestStatus = (requests) => {
+    const updatedRequests = requests?.map((r) => {
+        if (r?.type === "Cancel" && !r?.isResolved) {
+            r?.isResolved = true;
+            r?.status = "Accepted";
+            r?.resolvedAt = new Date().toISOString();
+            r?.reason = reason;
+        }
+        return r;
+    });
+    return updatedRequests;
+}
+
 // 1️⃣ Cancel when order accepted but not created on Shiprocket
 const preShiprocketCancel = async (req, res, next) => {
-    const { orderId } = req.body;
+    const { orderId, reason } = req.body;
     const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order && order?.status === "Cancelled") return res.status(404).json({ message: 'Order already cancelled' });
     // Stage: accepted locally but no Shiprocket order
     if (!order.shipmentId) {
         order.status = 'Cancelled';
+        const updatedRequestArr = updateRequestStatus(order?.requests);
+        console.log("Request Array:", updatedRequestArr);
+        order?.requests = updatedRequestArr;
         await order.save();
         await adjustStock(order);
         return res.json({ message: 'Order cancelled, stock restored' });
@@ -704,6 +735,9 @@ const createdCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
+        const updatedRequestArr = updateRequestStatus(order?.requests);
+        console.log("Request Array:", updatedRequestArr);
+        order?.requests = updatedRequestArr;
         await order.save();
         await adjustStock(order);
         return res.json({ message: 'Order cancelled on Shiprocket, stock restored' });
@@ -726,6 +760,9 @@ const awbCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
+        const updatedRequestArr = updateRequestStatus(order?.requests);
+        console.log("Request Array:", updatedRequestArr);
+        order?.requests = updatedRequestArr;
         await order.save();
         await adjustStock(order);
         return res.json({ message: 'Courier and order cancelled, stock restored' });
@@ -767,6 +804,11 @@ const postPickupCancel = async (req, res, next) => {
     else
         next();
 };
+
+
+// ******************************************************
+//                  ORDER RTO CONTROLLERS
+// ******************************************************
 
 // 5️⃣ RTO when shipment picked up or in transit
 const inTransitCancel = async (req, res, next) => {
