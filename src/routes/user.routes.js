@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+    createCustomer,
     createEmployee,
     deleteEmployee,
     editEmployee,
@@ -24,6 +25,7 @@ import {
 
 const router = Router()
 
+router.route("/createCustomer").post(verifyJWT, createCustomer);
 router.route("/createUser").post(verifyJWT, createEmployee);
 router.route("/login").post(loginUser);
 router.route("/refresh-token").post(refreshAccessToken)

@@ -239,6 +239,93 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 //              USER MANAGEMENT CONTROLLERS FOR ADMIN
 // **********************************************************
 
+const createCustomer = asyncHandler(async (req, res) => {
+    // get user details from frontend
+    // validation - not empty
+    // check if user already exists: username, email
+    // check for images, check for avatar
+    // upload them to cloudinary, avatar
+    // create user object - create entry in db
+    // remove password and refresh token field from response
+    // check for user creation
+    // return res
+
+    const {
+        name, phoneNo,
+    } = req.body
+
+    if (
+        [name, phoneNo].some((field) => field?.trim() === "")
+    ) {
+        throw new ApiError(400, "All fields are required")
+    }
+
+    const existedUser = await User.findOne({ phoneNo });
+
+    // console.log(existedUser);
+    if (existedUser) {
+        throw new ApiError(409, "User with phone number already exists")
+    }
+
+    const user = await User.create({
+        name,
+        phoneNo,
+        role: "user"
+    })
+
+    if (!user) {
+        throw new ApiError(500, "Something went wrong while registering the user")
+    }
+
+    let createdUser = null;
+    if (user?.role == ROLES.USER) {
+        const newCart = await Cart.create({
+            userId: user?._id,
+        });
+
+        createdUser = await User.findByIdAndUpdate(
+            user?._id,
+            {
+                cart: newCart?._id
+            },
+            { new: true }
+        )
+            .select("-password -refreshToken")
+            .populate({
+                path: "cart",
+                populate: {
+                    path: "items.productId",
+                    model: "Product"
+                }
+            })
+            .populate("wishlist")
+            .populate("orders")
+            .exec();
+    } else {
+        createdUser = await User.findById(user._id)
+            .select("-password -refreshToken")
+            .populate({
+                path: "cart",
+                populate: {
+                    path: "items.productId",
+                    model: "Product"
+                }
+            })
+            .populate("wishlist")
+            .populate("orders")
+            .exec();
+    }
+
+    if (!createdUser) {
+        throw new ApiError(500, "Something went wrong while registering the user")
+    }
+
+    return res.status(201).json(
+        new ApiResponse(201, createdUser, "User registered Successfully")
+    )
+
+})
+
 const createEmployee = asyncHandler(async (req, res) => {
     // get user details from frontend
     // validation - not empty
@@ -735,6 +822,7 @@ export {
     loginUser,
     logoutUser,
     refreshAccessToken,
+    createCustomer,
     createEmployee,
     editEmployee,
     deleteEmployee,
