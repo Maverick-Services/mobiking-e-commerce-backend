@@ -643,48 +643,22 @@ const placeWarrantyRequest = asyncHandler(async (req, res) => {
 
     if (!foundOrder) throw new ApiError(404, "Order does not exist");
 
-    /* --------------------- 3. ensure the order is in valid state for return ---------------- */
-    const cancellableStates = ["Delivered"]; // adjust as needed
-    if (
-        !cancellableStates.includes(foundOrder.status) ||
-        !cancellableStates.includes(foundOrder?.shippingStatus)
-    ) {
-        throw new ApiError(
-            409,
-            `Warranty cannot be request until order is delivered`
-        );
-    }
-
-    /* --------------------- 3. ensure the order is shipped, pickedup, in transit or delivered ---------------- */
-    // if (![
-    //     "Pending",
-    //     "PENDING",
-    //     "Courier Assigned",
-    //     "Pickup Scheduled"
-    // ].includes(foundOrder?.shippingStatus)
-    // ) {
-    //     throw new ApiError(
-    //         409,
-    //         `Order cannot be cancelled once shipment is ${foundOrder.status}`
-    //     );
-    // }
 
     /* --------------- 4. block duplicate / unresolved requests --------------- */
-    const alreadyRaised = foundOrder.requests.some(
-        (r) => r.type === "Cancel"
-        // && !r.isResolved
+    const warrantyRaised = foundOrder.requests.some(
+        (r) => r?.type === "Warranty"
     );
-    if (alreadyRaised) {
+    if (warrantyRaised) {
         throw new ApiError(
             409,
-            "A cancellation request is already placed for this order"
+            "A warranty request is already placed for this order"
         );
     }
 
     /* --------------- 4. block if return requests placed already --------------- */
     const reutrnRaised = foundOrder.requests.some(
-        (r) => r?.type === "Return" ||
-            (!r?.isResolved || (r?.isResolved && r?.status == "Rejected"))
+        (r) => r?.type === "Return" &&
+            (!r?.isResolved || (r?.isResolved && r?.status != "Rejected"))
     );
     if (reutrnRaised) {
         throw new ApiError(
@@ -693,13 +667,26 @@ const placeWarrantyRequest = asyncHandler(async (req, res) => {
         );
     }
 
-    const warrantyRaised = foundOrder.requests.some(
-        (r) => r?.type === "Warranty" && !r?.isResolved
+    const alreadyRaised = foundOrder.requests.some(
+        (r) => r.type === "Cancel"
+            && r.status != "Rejected"
     );
-    if (warrantyRaised) {
+    if (alreadyRaised) {
         throw new ApiError(
             409,
-            "A warranty request is already placed for this order"
+            "A cancellation request is already placed for this order"
+        );
+    }
+
+    /* --------------------- 3. ensure the order is in valid state for return ---------------- */
+    const warrantyStates = ["Delivered"]; // adjust as needed
+    if (
+        !warrantyStates.includes(foundOrder.status) ||
+        !warrantyStates.includes(foundOrder?.shippingStatus)
+    ) {
+        throw new ApiError(
+            409,
+            `Warranty cannot be request until order is delivered`
         );
     }
 

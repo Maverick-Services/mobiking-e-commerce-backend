@@ -8,6 +8,7 @@ import {
     loginUser,
     logoutUser,
     placeCancelRequest,
+    placeWarrantyRequest,
     refreshAccessToken
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
@@ -44,5 +45,6 @@ router.route("/address/view").get(verifyJWT, getAllAddressByUser);
 
 //Order Routes
 router.route("/request/cancel").post(verifyJWT, placeCancelRequest);
+router.route("/request/warranty").post(verifyJWT, placeWarrantyRequest);
 
 export default router
