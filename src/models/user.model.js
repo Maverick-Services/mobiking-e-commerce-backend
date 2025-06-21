@@ -59,6 +59,10 @@ const userSchema = new mongoose.Schema({
         of: permissionSchema,
         default: () => new Map()
     },
+    queries: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Query'
+    }],
     orders: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Order'
