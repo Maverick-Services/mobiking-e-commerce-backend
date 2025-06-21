@@ -691,13 +691,13 @@ async function adjustStock(order) {
     await Product.bulkWrite(ops);
 }
 
-const updateRequestStatus = (requests) => {
+const updateRequestStatus = (requests, reason) => {
     const updatedRequests = requests?.map((r) => {
         if (r?.type === "Cancel" && !r?.isResolved) {
-            r?.isResolved = true;
-            r?.status = "Accepted";
-            r?.resolvedAt = new Date().toISOString();
-            r?.reason = reason;
+            r.isResolved = true;
+            r.status = "Accepted";
+            r.resolvedAt = new Date().toISOString();
+            r.reason = reason;
         }
         return r;
     });
@@ -713,9 +713,9 @@ const preShiprocketCancel = async (req, res, next) => {
     // Stage: accepted locally but no Shiprocket order
     if (!order.shipmentId) {
         order.status = 'Cancelled';
-        const updatedRequestArr = updateRequestStatus(order?.requests);
+        const updatedRequestArr = updateRequestStatus(order?.requests, reason);
         console.log("Request Array:", updatedRequestArr);
-        order?.requests = updatedRequestArr;
+        order.requests = updatedRequestArr;
         await order.save();
         await adjustStock(order);
         return res.json({ message: 'Order cancelled, stock restored' });
@@ -735,9 +735,9 @@ const createdCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
-        const updatedRequestArr = updateRequestStatus(order?.requests);
+        const updatedRequestArr = updateRequestStatus(order?.requests, req?.reason);
         console.log("Request Array:", updatedRequestArr);
-        order?.requests = updatedRequestArr;
+        order.requests = updatedRequestArr;
         await order.save();
         await adjustStock(order);
         return res.json({ message: 'Order cancelled on Shiprocket, stock restored' });
@@ -760,9 +760,9 @@ const awbCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
-        const updatedRequestArr = updateRequestStatus(order?.requests);
+        const updatedRequestArr = updateRequestStatus(order?.requests, req?.reason);
         console.log("Request Array:", updatedRequestArr);
-        order?.requests = updatedRequestArr;
+        order.requests = updatedRequestArr;
         await order.save();
         await adjustStock(order);
         return res.json({ message: 'Courier and order cancelled, stock restored' });
@@ -797,6 +797,9 @@ const postPickupCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req?.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
+        const updatedRequestArr = updateRequestStatus(order?.requests, req?.reason);
+        console.log("Request Array:", updatedRequestArr);
+        order.requests = updatedRequestArr;
         await order.save();
         await adjustStock(order);
         return res.json({ message: 'Pickup and Order cancelled, stock restored' });
