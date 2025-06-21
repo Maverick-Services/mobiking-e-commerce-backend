@@ -270,7 +270,8 @@ const createCustomer = asyncHandler(async (req, res) => {
     const user = await User.create({
         name,
         phoneNo,
-        role: "user"
+        role: "user",
+        email: phoneNo
     })
 
     if (!user) {
