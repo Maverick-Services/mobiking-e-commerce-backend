@@ -45,35 +45,6 @@ export const raiseQueryByUser = asyncHandler(async (req, res) => {
     );
 });
 
-export const getQueries = asyncHandler(async (req, res) => {
-    const user = req.user;
-    // const { assignedTo, raisedBy } = req.body;
-
-    // Build dynamic filter
-    const filter = {};
-
-    // Only return user-specific queries if role is 'user'
-    // if (user.role === "user") {
-    //     filter.raisedBy = user._id;
-    // } else {
-    //     if (raisedBy) filter.raisedBy = raisedBy;
-    //     if (assignedTo) filter.assignedTo = assignedTo;
-    // }
-
-    // Fetch and populate user details
-    const queries = await Query.find(
-        // filter
-    )
-        .populate("raisedBy", "name email role")
-        .populate("assignedTo", "name email role")
-        .populate("replies.messagedBy", "name email role")
-        .sort({ createdAt: -1 });
-
-    return res.status(200).json(
-        new ApiResponse(200, queries, "Queries fetched successfully")
-    );
-});
-
 export const addReplyToQuery = asyncHandler(async (req, res) => {
     const { queryId, message } = req.body;
     const user = req.user;
@@ -151,10 +122,152 @@ export const assignQueriesInBulk = asyncHandler(async (req, res) => {
                 assignedTo: assignee._id,
                 assignedAt: new Date()
             }
-        }
+        },
+        { new: true }
     );
 
     return res.status(200).json(
         new ApiResponse(200, assignee, "Queries assigned successfully")
+    );
+});
+
+export const closeQuery = asyncHandler(async (req, res) => {
+    const { queryId, closingMessage } = req.body;
+    const requester = req.user; // injected by auth middleware
+
+    /* 1️⃣  Basic checks */
+    if (!queryId || !closingMessage) {
+        throw new ApiError(400, "queryId and closingMessage are required");
+    }
+
+    if (["user"].includes(requester.role)) {
+        throw new ApiError(403, "Only Admin/Employees can resolve queries");
+    }
+
+    /* 2️⃣  Fetch query */
+    const query = await Query.findById(queryId);
+
+    if (!query) throw new ApiError(404, "Query not found");
+
+    if (query?.isResolved) {
+        throw new ApiError(409, "Query is already resolved");
+    }
+
+    if (!query?.assignedTo) {
+        throw new ApiError(409, "Cannot resolve an unassigned query");
+    }
+
+    /* 3️⃣  Build resolution reply */
+    const resolutionReply = {
+        message: closingMessage,
+        messagedBy: requester._id,
+        messagedAt: new Date()
+    };
+
+    /* 4️⃣  Update query */
+    query.replies.push(resolutionReply);
+    query.isResolved = true;
+    query.resolvedAt = new Date();
+
+    const saved = await query.save();
+
+    /* 5️⃣  Populate for response */
+    const populated = await Query.findById(saved._id)
+        .populate("raisedBy", "name email")
+        .populate("assignedTo", "name email")
+        .populate("replies.messagedBy", "name email role");
+
+    return res.status(200).json(
+        new ApiResponse(200, populated, "Query resolved successfully")
+    );
+});
+
+export const addRatingToQuery = asyncHandler(async (req, res) => {
+    const { queryId, rating, review } = req.body;
+    const user = req.user;
+
+    // 1️⃣ Validate input
+    if (!queryId || !rating || !review) {
+        throw new ApiError(400, "Query ID, rating and review are required");
+    }
+
+    // 2️⃣ Ensure only users can rate
+    if (!user || user.role !== "user") {
+        throw new ApiError(403, "Only users can submit ratings");
+    }
+
+    // 3️⃣ Fetch the query
+    const query = await Query.findById(queryId);
+
+    if (!query) {
+        throw new ApiError(404, "Query not found");
+    }
+
+    // 4️⃣ Ensure user owns the query
+    if (!query.raisedBy.equals(user._id)) {
+        throw new ApiError(403, "You can only rate your own queries");
+    }
+
+    // 5️⃣ Allow rating only if query is resolved
+    if (!query.isResolved) {
+        throw new ApiError(409, "You can only rate resolved queries");
+    }
+
+    // 6️⃣ Prevent duplicate rating
+    if (query.rating) {
+        throw new ApiError(409, "Rating already submitted for this query");
+    }
+
+    // 7️⃣ Update rating and review
+    query.rating = rating;
+    if (review) query.review = review;
+
+    const updatedQuery = await query.save();
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedQuery, "Rating submitted successfully")
+    );
+});
+
+export const getQueries = asyncHandler(async (req, res) => {
+    const user = req.user;
+    // const { assignedTo, raisedBy } = req.body;
+
+    // Build dynamic filter
+    const filter = {};
+
+    // Only return user-specific queries if role is 'user'
+    // if (user.role === "user") {
+    //     filter.raisedBy = user._id;
+    // } else {
+    //     if (raisedBy) filter.raisedBy = raisedBy;
+    //     if (assignedTo) filter.assignedTo = assignedTo;
+    // }
+
+    // Fetch and populate user details
+    const queries = await Query.find(
+        // filter
+    )
+        .populate("raisedBy", "name email role")
+        .populate("assignedTo", "name email role")
+        .populate("replies.messagedBy", "name email role")
+        .sort({ createdAt: -1 });
+
+    return res.status(200).json(
+        new ApiResponse(200, queries, "Queries fetched successfully")
+    );
+});
+
+export const getQueriesForLoggedInUser = asyncHandler(async (req, res) => {
+    const userId = req.user?._id;
+
+    const queries = await Query.find({ raisedBy: userId })
+        .populate("raisedBy", "name email role")
+        .populate("assignedTo", "name email role")
+        .populate("replies.messagedBy", "name email role")
+        .sort({ createdAt: -1 });
+
+    return res.status(200).json(
+        new ApiResponse(200, queries, "Queries fetched successfully")
     );
 });

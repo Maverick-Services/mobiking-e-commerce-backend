@@ -48,6 +48,16 @@ const querySchema = new mongoose.Schema(
         resolvedAt: {
             type: Date
         },
+        isResolved: {
+            type: Boolean,
+            default: false
+        },
+        rating: {
+            type: Number
+        },
+        review: {
+            type: String
+        },
         replies: [replySchema]
     },
     { timestamps: true }
