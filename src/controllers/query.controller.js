@@ -233,22 +233,17 @@ export const addRatingToQuery = asyncHandler(async (req, res) => {
 
 export const getQueries = asyncHandler(async (req, res) => {
     const user = req.user;
-    // const { assignedTo, raisedBy } = req.body;
+    const { assignedTo } = req.query;
 
     // Build dynamic filter
     const filter = {};
 
     // Only return user-specific queries if role is 'user'
-    // if (user.role === "user") {
-    //     filter.raisedBy = user._id;
-    // } else {
-    //     if (raisedBy) filter.raisedBy = raisedBy;
-    //     if (assignedTo) filter.assignedTo = assignedTo;
-    // }
+    if (assignedTo) filter.assignedTo = assignedTo;
 
     // Fetch and populate user details
     const queries = await Query.find(
-        // filter
+        filter
     )
         .populate("raisedBy", "name email role")
         .populate("assignedTo", "name email role")
