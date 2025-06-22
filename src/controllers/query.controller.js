@@ -226,8 +226,14 @@ export const addRatingToQuery = asyncHandler(async (req, res) => {
 
     const updatedQuery = await query.save();
 
+    // Populate before sending
+    const populated = await Query.findById(updatedQuery._id)
+        .populate("raisedBy", "name email role")
+        .populate("assignedTo", "name email role")
+        .populate("replies.messagedBy", "name email role");
+
     return res.status(200).json(
-        new ApiResponse(200, updatedQuery, "Rating submitted successfully")
+        new ApiResponse(200, populated, "Rating submitted successfully")
     );
 });
 
