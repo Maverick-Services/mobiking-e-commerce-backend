@@ -132,11 +132,13 @@ export const assignQueriesInBulk = asyncHandler(async (req, res) => {
 });
 
 export const closeQuery = asyncHandler(async (req, res) => {
-    const { queryId, closingMessage } = req.body;
+    const { queryId
+        // , closingMessage 
+    } = req.body;
     const requester = req.user; // injected by auth middleware
 
     /* 1️⃣  Basic checks */
-    if (!queryId || !closingMessage) {
+    if (!queryId) {
         throw new ApiError(400, "queryId and closingMessage are required");
     }
 
@@ -158,14 +160,14 @@ export const closeQuery = asyncHandler(async (req, res) => {
     }
 
     /* 3️⃣  Build resolution reply */
-    const resolutionReply = {
-        message: closingMessage,
-        messagedBy: requester._id,
-        messagedAt: new Date()
-    };
+    // const resolutionReply = {
+    //     message: closingMessage,
+    //     messagedBy: requester._id,
+    //     messagedAt: new Date()
+    // };
 
     /* 4️⃣  Update query */
-    query.replies.push(resolutionReply);
+    // query.replies.push(resolutionReply);
     query.isResolved = true;
     query.resolvedAt = new Date();
 
