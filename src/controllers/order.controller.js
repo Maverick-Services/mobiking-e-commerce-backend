@@ -693,8 +693,6 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
     }
 });
 
-
-
 // ******************************************************
 //                  FETCH ORDERS CONTROLLERS
 // ******************************************************
