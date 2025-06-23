@@ -342,7 +342,7 @@ const updateCustomer = asyncHandler(async (req, res) => {
     const existedUser = await User.findOne({ email });
 
     // console.log(existedUser);
-    if (existedUser) {
+    if (existedUser && existedUser?._id != req?.user?._id) {
         throw new ApiError(409, "User with email already exists")
     }
 
