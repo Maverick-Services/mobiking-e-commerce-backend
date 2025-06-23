@@ -902,7 +902,7 @@ const createAbandonedOrderFromCart = async (cartId, userId, address) => {
         throw new Error("Cart ID, User ID, and address are required.");
     }
 
-    const cart = await Cart.findById(cartId).populate("items.productId");
+    const cart = await Cart.findById(cartId).populate("items.productId").populate("userId");
     if (!cart || cart.items.length === 0) {
         throw new Error("Cart not found or empty.");
     }
@@ -912,19 +912,22 @@ const createAbandonedOrderFromCart = async (cartId, userId, address) => {
         subtotal += item.quantity * item.price;
     });
 
-    const deliveryCharge = subtotal >= 500 ? 0 : 40;
-    const discount = 0;
-    const gst = parseFloat((subtotal * 0.18).toFixed(2));
-    const orderAmount = subtotal + gst + deliveryCharge - discount;
+    // const deliveryCharge = subtotal >= 500 ? 0 : 40;
+    // const discount = 0;
+    // const gst = parseFloat((subtotal * 0.18).toFixed(2));
+    const orderAmount = subtotal;
 
     const newOrder = new Order({
         orderId: `ORD-${uuidv4()}`,
         userId,
         orderAmount,
         address,
-        deliveryCharge,
-        discount,
-        gst,
+        name: cart?.userId?.name,
+        phoneNo: cart?.userId?.phoneNo,
+        email: cart?.userId?.email,
+        // deliveryCharge,
+        // discount,
+        // gst,
         subtotal,
         abondonedOrder: true,
         isAppOrder: false,

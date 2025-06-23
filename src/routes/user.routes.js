@@ -14,7 +14,8 @@ import {
     refreshAccessToken,
     rejectCancelRequest,
     rejectReturnRequest,
-    rejectWarrantyRequest
+    rejectWarrantyRequest,
+    updateCustomer
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import {
@@ -29,6 +30,7 @@ import {
 
 const router = Router()
 
+router.route("/profile/update").post(verifyJWT, updateCustomer);
 router.route("/createCustomer").post(verifyJWT, createCustomer);
 router.route("/createUser").post(verifyJWT, createEmployee);
 router.route("/login").post(loginUser);

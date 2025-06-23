@@ -327,6 +327,54 @@ const createCustomer = asyncHandler(async (req, res) => {
 
 })
 
+const updateCustomer = asyncHandler(async (req, res) => {
+
+    const {
+        name, email,
+    } = req.body
+
+    if (
+        [name, email].some((field) => field?.trim() === "")
+    ) {
+        throw new ApiError(400, "All fields are required")
+    }
+
+    const existedUser = await User.findOne({ email });
+
+    // console.log(existedUser);
+    if (existedUser) {
+        throw new ApiError(409, "User with email already exists")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req?.user?._id,
+        {
+            name,
+            email
+        },
+        { new: true }
+    ).select("-password -refreshToken")
+        .populate({
+            path: "cart",
+            populate: {
+                path: "items.productId",
+                model: "Product"
+            }
+        })
+        .populate("wishlist")
+        .populate("orders")
+        .exec();
+
+    if (!user) {
+        throw new ApiError(500, "Something went wrong while updating the profile")
+    }
+
+    return res.status(201).json(
+        new ApiResponse(201, user, "Profile updated Successfully")
+    )
+
+})
+
 const createEmployee = asyncHandler(async (req, res) => {
     // get user details from frontend
     // validation - not empty
@@ -1044,6 +1092,7 @@ export {
     logoutUser,
     refreshAccessToken,
     createCustomer,
+    updateCustomer,
     createEmployee,
     editEmployee,
     deleteEmployee,
