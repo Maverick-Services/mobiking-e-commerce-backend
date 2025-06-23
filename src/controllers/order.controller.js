@@ -380,7 +380,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             totalCartValue: cart.totalCartValue
         });
 
-        await newCart.save({ session });
+        await newCart.save({ session, timestamps: false });
 
         const updatedUser = await User.findByIdAndUpdate(
             cart.userId,

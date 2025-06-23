@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Order } from "../models/order.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 // This function should be used right after order creation in Shiprocket
 // controllers/assignBestCourier.js
@@ -327,29 +328,111 @@ const verifyShiprocketToken = (req, res, next) => {
     next();
 };
 
-const shiprocketWebhook = async (req, res) => {
-    try {
-        let payload = req.body;
-        console.log("🚚 Shiprocket Webhook Received:", payload);
-        // payload = JSON.stringify(payload, null, 2)
-        // console.log("🚚 Stringified Shiprocket Webhook Received:", payload);
+/* ------------------------------------------------------------------
+   Shiprocket Webhook – handle post‑pickup events only
+------------------------------------------------------------------- */
+const shiprocketWebhook = asyncHandler(async (req, res) => {
+    const p = req.body;
+    const srStatus = (p.current_status || p.shipment_status || "").toUpperCase();
 
-        if (
-            payload?.current_status != "NEW" ||
-            (payload?.shipment_status && payload?.shipment_status != "PENDING")
-        ) {
+    /* 1) Ignore everything before PICKED UP ---------------------------------- */
+    const postPickupStatuses = [
+        "PICKED UP", "SHIPPED", "IN TRANSIT", "OUT FOR DELIVERY", "DELIVERED",
+        "CANCELLED",                      // late cancellation
+        "RTO INITIATED", "RTO IN TRANSIT", "RTO", "RTO DELIVERED"
+    ];
+    if (!postPickupStatuses.includes(srStatus))
+        return res.status(200).json({ success: true, ignored: true });
 
+    /* 2) Locate order -------------------------------------------------------- */
+    const order = await Order.findOne({
+        $or: [
+            { awbCode: p.awb },
+            { shiprocketOrderId: String(p.order_id || p.sr_order_id) },
+        ],
+    });
+    if (!order) return res.status(200).json({ success: true, unknown: true });
+
+    const prevShip = (order.shippingStatus || "").toUpperCase();
+    const nowISO = new Date().toISOString();
+    const upd = { shippingStatus: srStatus };      // always store latest
+
+    /* helper to restore stock exactly once */
+    const restoreStock = async () => {
+        if (order._restockDone) return;
+        for (const it of order.items) {
+            await Product.findByIdAndUpdate(it.productId, {
+                $inc: {
+                    totalStock: it.quantity,
+                    [`variants.${it.variantName}`]: it.quantity,
+                },
+            }).exec();
         }
+        upd._restockDone = true;
+    };
 
-        // Save or process update in DB
-        // e.g. updateOrderStatus(payload.awb, payload.status)
+    /* 3) Status‑specific logic ---------------------------------------------- */
+    switch (srStatus) {
+        case "PICKED UP":
+            if (prevShip !== "PICKED UP") {
+                upd.pickupDate = nowISO;
+                if (["NEW", "ACCEPTED"].includes(order.status.toUpperCase()))
+                    upd.status = "Shipped";
+            }
+            break;
 
-        res.status(200).json({ success: true });
-    } catch (err) {
-        console.error("Webhook Error:", err);
-        res.status(500).json({ success: false });
+        case "SHIPPED":
+        case "IN TRANSIT":
+        case "OUT FOR DELIVERY":
+            if (["NEW", "ACCEPTED"].includes(order.status.toUpperCase()))
+                upd.status = "Shipped";
+            break;
+
+        case "DELIVERED":
+            if (order.status !== "Delivered") {
+                upd.status = "Delivered";
+                upd.deliveredAt = nowISO;
+            }
+            break;
+
+        /* Late cancellation *after* pickup */
+        case "CANCELLED":
+            if (["PICKED UP", "SHIPPED", "IN TRANSIT"].includes(prevShip)) {
+                upd.status = "Cancelled";
+                upd.reason = "Cancelled by courier after pickup";
+                await restoreStock();
+            }
+            break;
+
+        /* RTO journey */
+        case "RTO":
+        case "RTO INITIATED":
+        case "RTO IN TRANSIT":
+            if (!order.rtoInitiatedAt) upd.rtoInitiatedAt = nowISO;
+            if (order.status !== "Returned") upd.status = "Returned";
+            break;
+
+        case "RTO DELIVERED":
+            upd.rtoDeliveredAt = nowISO;
+            upd.status = "Returned";
+            await restoreStock();
+            break;
+
+        default:
+            // Any post‑pickup status we didn’t foresee: just record it.
+            break;
     }
-}
+
+    /* 4) Always overwrite scans if provided ---------------------------------- */
+    if (Array.isArray(p.scans) && p.scans.length) upd.scans = p.scans;
+
+    /* 5) Persist if anything changed ---------------------------------------- */
+    if (Object.keys(upd).length > 1) {             // >1 because shippingStatus always set
+        await Order.findByIdAndUpdate(order._id, upd, { new: true }).exec();
+    }
+
+    return res.status(200).json(new ApiResponse(200, null, "Webhook processed"));
+});
 
 export {
     assignBestCourier,

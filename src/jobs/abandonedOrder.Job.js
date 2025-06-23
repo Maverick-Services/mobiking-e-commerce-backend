@@ -8,8 +8,8 @@ export const processAbandonedCarts = async () => {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
     // const abandonedCarts = await Cart.find({ updatedAt: { $lt: fifteenMinutesAgo } }).populate("userId");
-
-    const abandonedCarts = await Cart.find({ updatedAt: { $lt: oneWeekAgo } }).populate("userId");
+    // const abandonedCarts = await Cart.find({ updatedAt: { $lt: oneWeekAgo } }).populate("userId");
+    const abandonedCarts = await Cart.find({ updatedAt: { $lt: threeDaysAgo } }).populate("userId");
 
     for (const cart of abandonedCarts) {
         if (cart?.items?.length <= 0) continue;

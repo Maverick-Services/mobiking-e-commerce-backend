@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
     });
 });
 
-startAbandonedCartScheduler();
+// startAbandonedCartScheduler();
 
 // Global error handler
 app.use((err, req, res, next) => {
