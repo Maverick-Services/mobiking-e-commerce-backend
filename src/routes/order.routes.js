@@ -16,7 +16,8 @@ import {
     preShiprocketReject,
     createdReject,
     awbReject,
-    holdAbandonedOrder
+    holdAbandonedOrder,
+    getOrdersByDate
 } from "../controllers/order.controller.js";
 import {
     assignBestCourier,
@@ -35,6 +36,7 @@ router.route("/online/new").post(verifyJWT, createOnlineOrder);
 router.route("/online/verify").post(verifyJWT, verifyPayment);
 router.route("/user").get(verifyJWT, getAllOrdersByUser);
 router.route("/").get(verifyJWT, getAllOrders);
+router.route("/custom").get(verifyJWT, getOrdersByDate);
 
 //Admin Order Routes
 router.route("/hold").post(verifyJWT, holdAbandonedOrder);

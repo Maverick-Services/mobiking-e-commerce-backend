@@ -91,6 +91,8 @@ const orderSchema = new mongoose.Schema(
         shippingManifestUrl: String,  // e.g. “14:00‑18:00”
 
         deliveredAt: String,    // set when status → Delivered
+        rtoInitiatedAt: { type: String },   // set when RTO starts
+        rtoDeliveredAt: { type: String },   // set when RTO parcel returns
 
         /****************  PAYMENT FIELDS  *****************/
         razorpayOrderId: String,

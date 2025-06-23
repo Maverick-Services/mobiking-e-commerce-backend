@@ -806,6 +806,39 @@ const awbReject = async (req, res) => {
 //                  FETCH ORDERS CONTROLLERS
 // ******************************************************
 
+export const getOrdersByDate = asyncHandler(async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    /* ------------------------- 1. Validate Inputs ------------------------- */
+    if (!startDate || !endDate) {
+        throw new ApiError(400, "Start date and end date are required");
+    }
+
+    const from = new Date(startDate);
+    const to = new Date(new Date(endDate).setHours(23, 59, 59, 999)); // End of the day
+
+    if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+        throw new ApiError(400, "Invalid date format provided");
+    }
+
+    /* ---------------------- 2. Fetch Orders in Range ---------------------- */
+    const orders = await Order.find({
+        createdAt: {
+            $gte: from,
+            $lte: to,
+        },
+    })
+        .populate("userId", "name email phoneNo")
+        .populate("items.productId", "name fullName")
+        .populate("addressId")
+        .sort({ createdAt: -1 });
+
+    /* --------------------------- 3. Respond ------------------------------- */
+    return res
+        .status(200)
+        .json(new ApiResponse(200, orders, "Orders fetched successfully"));
+});
+
 const getAllOrdersByUser = asyncHandler(async (req, res) => {
 
     // console.log("User", req?.user?._id);
