@@ -44,7 +44,7 @@ const orderSchema = new mongoose.Schema(
             ],
             default: "New"
         },
-        holdReason: { type: String },
+        reason: { type: String },
         shippingStatus: {
             type: String,
             enum: [

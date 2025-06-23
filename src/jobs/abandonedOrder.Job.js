@@ -4,7 +4,8 @@ import { createAbandonedOrderFromCart } from "../controllers/order.controller.js
 
 export const processAbandonedCarts = async () => {
     // const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    // const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
     // const abandonedCarts = await Cart.find({ updatedAt: { $lt: fifteenMinutesAgo } }).populate("userId");
 
@@ -19,7 +20,7 @@ export const processAbandonedCarts = async () => {
             const createdOrder = await createAbandonedOrderFromCart(
                 cart?._id, user?._id,
                 // user?.address ?? 
-                "Rohini, Delhi"
+                // "Rohini, Delhi"
             );
             if (createdOrder) {
                 console.log(`Abandoned order created for user ${user?._id}`);

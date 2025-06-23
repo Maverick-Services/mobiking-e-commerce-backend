@@ -9,8 +9,12 @@ import {
     loginUser,
     logoutUser,
     placeCancelRequest,
+    placeReturnRequest,
     placeWarrantyRequest,
-    refreshAccessToken
+    refreshAccessToken,
+    rejectCancelRequest,
+    rejectReturnRequest,
+    rejectWarrantyRequest
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import {
@@ -47,6 +51,10 @@ router.route("/address/view").get(verifyJWT, getAllAddressByUser);
 
 //Order Routes
 router.route("/request/cancel").post(verifyJWT, placeCancelRequest);
+router.route("/request/cancel/reject").post(verifyJWT, rejectCancelRequest);
 router.route("/request/warranty").post(verifyJWT, placeWarrantyRequest);
+router.route("/request/warranty/reject").post(verifyJWT, rejectWarrantyRequest);
+router.route("/request/return").post(verifyJWT, placeReturnRequest);
+router.route("/request/return/reject").post(verifyJWT, rejectReturnRequest);
 
 export default router

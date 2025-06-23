@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { processAbandonedCarts } from "../jobs/abandonedOrder.Job.js";
 
 export const startAbandonedCartScheduler = () => {
-    cron.schedule("0 */12 * * *", async () => {
+    cron.schedule("0 * * * *", async () => {
         console.log("⏰ Running abandoned cart job at", new Date().toISOString());
         try {
             await processAbandonedCarts();

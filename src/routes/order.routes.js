@@ -12,7 +12,11 @@ import {
     postPickupCancel,
     inTransitCancel,
     deliveredCancel,
-    createPosOrder
+    createPosOrder,
+    preShiprocketReject,
+    createdReject,
+    awbReject,
+    holdAbandonedOrder
 } from "../controllers/order.controller.js";
 import {
     assignBestCourier,
@@ -33,6 +37,7 @@ router.route("/user").get(verifyJWT, getAllOrdersByUser);
 router.route("/").get(verifyJWT, getAllOrders);
 
 //Admin Order Routes
+router.route("/hold").post(verifyJWT, holdAbandonedOrder);
 router.route("/accept").post(
     verifyJWT,
     shiprocketAuth,
@@ -41,6 +46,14 @@ router.route("/accept").post(
     schedulePickup,
     generateLabelAndManifestBackground
 );
+
+router.route("/reject").post(
+    verifyJWT,
+    shiprocketAuth,
+    preShiprocketReject,
+    createdReject,
+    awbReject
+)
 
 router.route("/cancel").post(
     verifyJWT,

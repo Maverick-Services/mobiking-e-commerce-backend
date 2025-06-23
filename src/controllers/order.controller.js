@@ -21,7 +21,7 @@ const razorpayConfig = () => {
 }
 
 // ******************************************************
-//                  PLACE AND ACCEPT ORDER CONTROLLERS
+//                  PLACE, ACCEPT, REJECT ORDER CONTROLLERS
 // ******************************************************
 
 const createPosOrder = asyncHandler(async (req, res) => {
@@ -694,6 +694,115 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
 });
 
 // ******************************************************
+//                 HOLD ABANDONED ORDER CONTROLLERS
+// ******************************************************
+
+const holdAbandonedOrder = asyncHandler(async (req, res, next) => {
+    const { orderId, reason } = req.body;
+    const order = await Order.findById(orderId);
+    if (!order) throw new ApiError(404, 'Order not found');
+    if (order && order?.status === "Hold") throw new ApiError(404, 'Order already on hold');
+    if (order && !order?.abondonedOrder) throw new ApiError(404, 'Not an abandoned order');
+
+    order.status = 'Hold';
+    order.reason = reason;
+    const savedOrder = await order.save();
+    if (!savedOrder) {
+        throw new ApiError(500, "Could not hold order");
+    }
+    return res.json({ message: 'Order put on Hold' });
+});
+
+// ******************************************************
+//                 REJECT ORDER CONTROLLERS
+// ******************************************************
+
+const rejectAllRequest = (requests, reason) => {
+    const updatedRequests = requests?.map((r) => {
+        r.isResolved = true;
+        r.status = "Rejected";
+        r.resolvedAt = new Date().toISOString();
+        r.reason = r?.reason ? r.reason : reason;
+        return r;
+    });
+    return updatedRequests;
+}
+
+// 1️⃣ Reject when order accepted but not created on Shiprocket
+const preShiprocketReject = async (req, res, next) => {
+    const { orderId, reason } = req.body;
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order && order?.status === "Rejected") return res.status(404).json({ message: 'Order already rejected' });
+    // Stage: created locally but no Shiprocket order
+    if (!order.shipmentId) {
+        order.status = 'Rejected';
+        order.reason = reason;
+        const updatedRequestArr = rejectAllRequest(order?.requests, "Order Rejected");
+        console.log("Request Array:", updatedRequestArr);
+        order.requests = updatedRequestArr;
+        await order.save();
+        await adjustStock(order);
+        return res.json({ message: 'Order rejected, stock restored' });
+    }
+    else {
+        req.order = order;
+        next();
+    }
+};
+
+// 2️⃣ Reject when only Shiprocket order created, no AWB
+const createdReject = async (req, res, next) => {
+    const order = req.order;
+    const { reason } = req.body;
+    if (order?.shipmentId && !order?.awbCode) {
+        // Cancel Shiprocket order
+        await axios.post(
+            'https://apiv2.shiprocket.in/v1/external/orders/cancel',
+            { ids: [order.shiprocketOrderId] },
+            { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
+        );
+        order.status = 'Rejected';
+        order.reason = reason;
+        const updatedRequestArr = rejectAllRequest(order?.requests, req?.reason);
+        console.log("Request Array:", updatedRequestArr);
+        order.requests = updatedRequestArr;
+        await order.save();
+        await adjustStock(order);
+        return res.json({ message: 'Order cancelled on Shiprocket, marked Rejected, stock restored' });
+    }
+    else next();
+};
+
+// 3️⃣ Reject when AWB assigned but pickup not scheduled
+const awbReject = async (req, res) => {
+    const order = req.order;
+    const { reason } = req.body;
+    if (order?.awbCode && !order?.pickupDate) {
+        await axios.post(
+            'https://apiv2.shiprocket.in/v1/external/orders/cancel/shipment/awbs',
+            { awbs: [order?.awbCode] },
+            { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
+        );
+        await axios.post(
+            'https://apiv2.shiprocket.in/v1/external/orders/cancel',
+            { ids: [order?.shiprocketOrderId] },
+            { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
+        );
+        order.status = 'Rejected';
+        order.reason = reason;
+        const updatedRequestArr = rejectAllRequest(order?.requests, req?.reason);
+        console.log("Request Array:", updatedRequestArr);
+        order.requests = updatedRequestArr;
+        await order.save();
+        await adjustStock(order);
+        return res.json({ message: 'Courier and order cancelled on shiprocket, marked rejected, stock restored' });
+    }
+    else
+        return res.status(400).json({ message: 'Could not Reject Order' });
+};
+
+// ******************************************************
 //                  FETCH ORDERS CONTROLLERS
 // ******************************************************
 
@@ -754,7 +863,9 @@ const getAllOrders = asyncHandler(async (req, res) => {
 });
 
 const createAbandonedOrderFromCart = async (cartId, userId, address) => {
-    if (!cartId || !userId || !address) {
+    if (!cartId || !userId
+        // || !address
+    ) {
         throw new Error("Cart ID, User ID, and address are required.");
     }
 
@@ -971,7 +1082,11 @@ export {
     getAllOrdersByUser,
     getAllOrders,
     createAbandonedOrderFromCart,
+    holdAbandonedOrder,
     acceptOrder,
+    preShiprocketReject,
+    createdReject,
+    awbReject,
     preShiprocketCancel,
     createdCancel,
     awbCancel,
