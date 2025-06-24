@@ -13,7 +13,7 @@ const createGroup = asyncHandler(async (req, res) => {
 
     //Validate details
     if (
-        !name || !sequenceNo
+        !name || !req?.params?._id
     ) {
         throw new ApiError(400, "Details not found");
     }
@@ -42,7 +42,7 @@ const editGroup = asyncHandler(async (req, res) => {
 
     //Validate details
     if (
-        !name || !sequenceNo || !req?.params?._id
+        !name || !req?.params?._id
     ) {
         throw new ApiError(400, "Details not found");
     }
@@ -56,8 +56,11 @@ const editGroup = asyncHandler(async (req, res) => {
     const updatedGroup = await Group.findByIdAndUpdate(
         req?.params?._id,
         {
-            name, sequenceNo, active,
-            isBannerVisble, isSpecial,
+            name,
+            sequenceNo: sequenceNo ? sequenceNo : foundGroup?.sequenceNo,
+            active: active ? active : foundGroup?.active,
+            isBannerVisble: isBannerVisble ? isBannerVisble : foundGroup?.isBannerVisble,
+            isSpecial: isSpecial ? isSpecial : foundGroup?.isSpecial,
             banner: banner ? banner : foundGroup?.banner
         },
         { new: true }
