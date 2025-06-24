@@ -831,10 +831,25 @@ export const getOrdersByDate = asyncHandler(async (req, res) => {
             $lte: to,
         },
     })
-        .populate("userId", "name email phoneNo")
-        .populate("items.productId", "name fullName")
-        .populate("addressId")
+        .populate({
+            path: 'userId',
+            model: "User",
+            select: "-password -refreshToken",
+            populate: {
+                path: "orders",  // This is the key part
+                model: "Order"
+            }
+        })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: {
+                path: "category",  // This is the key part
+                model: "SubCategory"
+            }
+        })
         .sort({ createdAt: -1 });
+    // .exec()
 
     /* --------------------------- 3. Respond ------------------------------- */
     return res
@@ -850,8 +865,13 @@ const getAllOrdersByUser = asyncHandler(async (req, res) => {
         // {  }
     )
         .populate({
-            path: "userId",
-            select: "-password -refreshToken"
+            path: 'userId',
+            model: "User",
+            select: "-password -refreshToken",
+            populate: {
+                path: "orders",  // This is the key part
+                model: "Order"
+            }
         })
         .populate({
             path: "items.productId",
@@ -861,7 +881,8 @@ const getAllOrdersByUser = asyncHandler(async (req, res) => {
                 model: "SubCategory"
             }
         })
-        .exec();
+        .sort({ createdAt: -1 })
+    // .exec();
 
     if (!userOrders) {
         throw new ApiError(500, "Something went wrong while fetching the orders")
@@ -877,7 +898,12 @@ const getAllOrders = asyncHandler(async (req, res) => {
     const allOrder = await Order.find({})
         .populate({
             path: 'userId',
-            select: "-password -refreshToken"
+            model: "User",
+            select: "-password -refreshToken",
+            populate: {
+                path: "orders",  // This is the key part
+                model: "Order"
+            }
         })
         .populate({
             path: "items.productId",
@@ -887,7 +913,8 @@ const getAllOrders = asyncHandler(async (req, res) => {
                 model: "SubCategory"
             }
         })
-        .exec();
+        .sort({ createdAt: -1 })
+    // .exec();
 
     if (!allOrder) {
         throw new ApiError(409, "Could not find orders");
