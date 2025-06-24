@@ -34,6 +34,44 @@ const createGroup = asyncHandler(async (req, res) => {
     )
 });
 
+const editGroup = asyncHandler(async (req, res) => {
+    const {
+        name, sequenceNo, active,
+        banner, isBannerVisble, isSpecial
+    } = req.body;
+
+    //Validate details
+    if (
+        !name || !sequenceNo || !req?.params?._id
+    ) {
+        throw new ApiError(400, "Details not found");
+    }
+
+    const foundGroup = await Group.findById(req?.params?._id);
+    if (!foundGroup) {
+        throw new ApiError(409, `Group not found`);
+    }
+
+    //edit group
+    const updatedGroup = await Group.findByIdAndUpdate(
+        req?.params?._id,
+        {
+            name, sequenceNo, active,
+            isBannerVisble, isSpecial,
+            banner: banner ? banner : foundGroup?.banner
+        },
+        { new: true }
+    );
+    if (!updatedGroup) {
+        throw new ApiError(500, "Could not edit group");
+    }
+
+    //return response
+    return res.status(201).json(
+        new ApiResponse(201, updatedGroup, "Group edited Successfully")
+    )
+});
+
 const addProductInGroup = asyncHandler(async (req, res) => {
     const {
         productId, groupId
@@ -257,6 +295,7 @@ const getSpecialGroups = asyncHandler(async (req, res) => {
 
 export {
     createGroup,
+    editGroup,
     addProductInGroup,
     removeProductFromGroup,
     syncGroupProducts,

@@ -601,8 +601,11 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
             throw new ApiError(400, 'Order does not exist');
         }
 
-        if (foundOrder && foundOrder?.status === "Cancelled")
-            return res.status(404).json({ message: 'Order is cancelled' });
+        if (foundOrder && foundOrder?.abondonedOrder)
+            return res.status(404).json({ message: `Order is Abandoned` });
+
+        if (foundOrder && foundOrder?.status != "New")
+            return res.status(404).json({ message: `Order is ${foundOrder?.status}` });
 
         //Format the items name
         const order_items = foundOrder.items.map((item) => {

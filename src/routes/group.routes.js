@@ -3,6 +3,7 @@ import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import {
     addProductInGroup,
     createGroup,
+    editGroup,
     getAllGroups,
     getSpecialGroups,
     removeProductFromGroup,
@@ -14,6 +15,7 @@ const router = Router()
 
 //Product Routes
 router.route("/createGroup").post(verifyJWT, createGroup);
+router.route("/:_id").put(verifyJWT, editGroup);
 router.route("/addProduct").post(verifyJWT, addProductInGroup);
 router.route("/removeProduct").post(verifyJWT, removeProductFromGroup);
 router.route("/updateProducts").post(verifyJWT, syncGroupProducts);

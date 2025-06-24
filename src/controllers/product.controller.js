@@ -188,7 +188,8 @@ const editProduct = asyncHandler(async (req, res) => {
             name, fullName, description,
             slug, active,
             sellingPrice,
-            category: categoryId
+            category: categoryId,
+            images: images ? images : foundProduct?.images
         },
         { new: true }
     ).populate("category stock groups").exec(); //populate order, group here

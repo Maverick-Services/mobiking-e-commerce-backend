@@ -41,7 +41,7 @@ const createCategory = asyncHandler(async (req, res) => {
 
 const editCategory = asyncHandler(async (req, res) => {
     const { _id } = req.params;
-    const { name, slug, active } = req.body;
+    const { name, slug, active, image } = req.body;
 
     if (!_id || !name || !slug) {
         throw new ApiError(400, "Details not found");
@@ -57,7 +57,8 @@ const editCategory = asyncHandler(async (req, res) => {
         {
             name,
             slug,
-            active
+            active,
+            image: image ? image : foundCategory?.image
         },
         { new: true }
     ).populate("subCategories")
@@ -229,7 +230,10 @@ const editSubCategory = asyncHandler(async (req, res) => {
         deliveryCharge,
         minOrderAmount,
         minFreeDeliveryOrderAmount,
-        categoryId
+        categoryId,
+        upperBanner,
+        lowerBanner,
+        photos
     } = req.body;
 
     //Todo: Add Images, upper, lower banner in the subcategories
@@ -258,7 +262,10 @@ const editSubCategory = asyncHandler(async (req, res) => {
             deliveryCharge,
             minOrderAmount,
             minFreeDeliveryOrderAmount,
-            parentCategory: categoryId
+            parentCategory: categoryId,
+            upperBanner: upperBanner ? upperBanner : foundSubCategory?.upperBanner,
+            lowerBanner: lowerBanner ? lowerBanner : foundSubCategory?.lowerBanner,
+            photos: photos ? photos : foundSubCategory?.photos,
         },
         { new: true }
     ).populate("parentCategory products").exec();
