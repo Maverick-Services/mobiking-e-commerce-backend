@@ -114,7 +114,7 @@ const orderSchema = new mongoose.Schema(
         },
         method: {
             type: String,
-            enum: ["COD", "Online"],
+            enum: ["COD", "Online", "UPI", "Cash"],
             default: "COD"
         },
         isAppOrder: {
