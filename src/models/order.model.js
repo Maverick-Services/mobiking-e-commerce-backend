@@ -162,7 +162,10 @@ const orderSchema = new mongoose.Schema(
         length: Number,
         breadth: Number,
         height: Number,
-        weight: Number,
+        weight: {
+            type: Number,
+            default: 0.5
+        },
     },
     { timestamps: true }
 );
