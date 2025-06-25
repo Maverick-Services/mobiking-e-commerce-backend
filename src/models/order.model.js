@@ -140,6 +140,11 @@ const orderSchema = new mongoose.Schema(
 
         /****************  ADDRESS  *****************/
         address: String,
+        address2: String,
+        city: String,
+        state: String,
+        pincode: String,
+        country: String,
         addressId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Address"
@@ -151,7 +156,13 @@ const orderSchema = new mongoose.Schema(
             ref: "User",
             required: true
         },
-        items: [itemsSchema]
+
+        /************** Product/Itesm Details *******************/
+        items: [itemsSchema],
+        length: Number,
+        breadth: Number,
+        height: Number,
+        weight: Number,
     },
     { timestamps: true }
 );

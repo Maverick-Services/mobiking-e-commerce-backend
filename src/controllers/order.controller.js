@@ -424,6 +424,74 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
     }
 });
 
+const updateOrder = asyncHandler(async (req, res) => {
+    const session = await mongoose.startSession();
+
+    try {
+        const {
+            orderId,
+        } = req.body;
+
+        const updates = req?.body;
+
+        if (
+            !orderId
+        ) {
+            throw new ApiError(400, 'Order Id not found.');
+        }
+
+        const foundOrder = await Order.findById(orderId);
+        if (!foundOrder) {
+            throw new ApiError(400, 'Order not found.');
+        }
+
+        const updatedOrder = await Order.findByIdAndUpdate(
+            orderId,
+            {
+                updates
+            },
+            { new: true }
+        );
+
+        // await session.withTransaction(async () => {
+        //     // Save order
+        //     await newOrderDoc.save({ session });
+
+        //     // Decrement stock
+        //     const bulkOps = cart.items.map(it => ({
+        //         updateOne: {
+        //             filter: {
+        //                 _id: it.productId._id,
+        //                 totalStock: { $gte: it.quantity },
+        //                 [`variants.${it.variantName}`]: { $gte: it.quantity }
+        //             },
+        //             update: {
+        //                 $inc: {
+        //                     totalStock: -it.quantity,
+        //                     [`variants.${it.variantName}`]: -it.quantity
+        //                 }
+        //             }
+        //         }
+        //     }));
+
+        //     const bulkRes = await Product.bulkWrite(bulkOps, { session });
+        //     const failed = bulkRes.modifiedCount !== cart.items.length;
+        //     if (failed) throw new ApiError(404, 'One or more items are out of stock.');
+
+        // });
+
+        return res.status(201).json(
+            new ApiResponse(201, { order }, "Order updated Successfully")
+        );
+
+    } catch (err) {
+        console.error('Error updating order:', err.message);
+        return res.status(500).json({ message: err.message || 'Internal server error' });
+    } finally {
+        session.endSession();
+    }
+});
+
 const verifyPayment = async (req, res) => {
     const session = await mongoose.startSession();
 
@@ -894,6 +962,41 @@ const getAllOrdersByUser = asyncHandler(async (req, res) => {
 
 })
 
+const getOrderById = asyncHandler(async (req, res) => {
+
+    if (!req?.params?._id) {
+        throw new ApiError(400, "Order Id not found");
+    }
+
+    const order = await Order.findById(req?.params?._id)
+        .populate({
+            path: 'userId',
+            model: "User",
+            select: "-password -refreshToken",
+            populate: {
+                path: "orders",  // This is the key part
+                model: "Order"
+            }
+        })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: {
+                path: "category",  // This is the key part
+                model: "SubCategory"
+            }
+        })
+        .exec();
+
+    if (!order) {
+        throw new ApiError(409, "Could not find order");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, order, "Order fetched Successfully")
+    )
+});
+
 const getAllOrders = asyncHandler(async (req, res) => {
     const allOrder = await Order.find({})
         .populate({
@@ -1146,6 +1249,7 @@ export {
     createOnlineOrder,
     verifyPayment,
     getAllOrdersByUser,
+    getOrderById,
     getAllOrders,
     createAbandonedOrderFromCart,
     holdAbandonedOrder,
