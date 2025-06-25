@@ -19,7 +19,8 @@ import {
     holdAbandonedOrder,
     getOrdersByDate,
     getOrderById,
-    updateOrder
+    updateOrder,
+    addItemQuantityInOrder
 } from "../controllers/order.controller.js";
 import {
     assignBestCourier,
@@ -38,6 +39,8 @@ router.route("/online/new").post(verifyJWT, createOnlineOrder);
 router.route("/online/verify").post(verifyJWT, verifyPayment);
 router.route("/user").get(verifyJWT, getAllOrdersByUser);
 router.route("/:_id").put(verifyJWT, updateOrder);
+router.route("/items/add").post(verifyJWT, addItemQuantityInOrder);
+router.route("/items/remove").post(verifyJWT, updateOrder);
 router.route("/details/:_id").get(verifyJWT, getOrderById);
 router.route("/custom").get(verifyJWT, getOrdersByDate);
 router.route("/").get(verifyJWT, getAllOrders);
@@ -49,6 +52,13 @@ router.route("/accept").post(
     shiprocketAuth,
     acceptOrder,
     assignBestCourier,
+    schedulePickup,
+    generateLabelAndManifestBackground
+);
+
+router.route("/schedulePickup").post(
+    verifyJWT,
+    shiprocketAuth,
     schedulePickup,
     generateLabelAndManifestBackground
 );

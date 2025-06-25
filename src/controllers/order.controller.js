@@ -462,6 +462,110 @@ const updateOrder = asyncHandler(async (req, res) => {
     }
 });
 
+const addItemQuantityInOrder = async (req, res) => {
+    const session = await mongoose.startSession();
+
+    try {
+        const {
+            orderId,
+            productId,
+            variantName,
+            quantity = 1
+        } = req.body;
+
+        if (!orderId || !productId || !variantName || !quantity || quantity <= 0) {
+            throw new ApiError(400, "All fields are required and quantity must be > 0");
+        }
+
+        session.startTransaction();
+
+        const [order, product] = await Promise.all([
+            Order.findById(orderId).session(session),
+            Product.findById(productId).populate("category").session(session)
+        ]);
+
+        if (!order) throw new ApiError(404, "Order not found");
+        if (!product) throw new ApiError(404, "Product not found");
+
+        // Check stock availability
+        const availableVariantStock = product.variants.get(variantName);
+        if (!availableVariantStock || availableVariantStock < quantity || product.totalStock < quantity) {
+            throw new ApiError(400, `Item ${product.fullName} in variant ${variantName} is out of stock`);
+        }
+
+        // Update product stock
+        product.totalStock -= quantity;
+        product.variants?.set(variantName, availableVariantStock - quantity);
+        await product.save({ session });
+
+        // Check if item already exists in order
+        const existingItem = order.items.find(
+            item =>
+                item.productId.toString() === productId &&
+                item.variantName === variantName
+        );
+
+        if (existingItem) {
+            existingItem.quantity += quantity;
+        } else {
+            // Add new item entry
+            order.items.push({
+                productId,
+                name: product?.fullName,
+                price: product?.sellingPrice[product?.sellingPrice?.length - 1]?.price,
+                variantName,
+                quantity
+            });
+        }
+
+        // 🔁 Recalculate subtotal, deliveryCharge, and orderAmount
+        let subtotal = 0;
+        const categoryCharges = new Map();
+
+        for (const item of order.items) {
+            const p = await Product.findById(item.productId)
+                .populate("category")
+                .session(session);
+
+            if (!p || !p.category) {
+                throw new ApiError(400, `Product or category missing for ${item.productId}`);
+            }
+
+            // Calculate subtotal
+            subtotal += item?.price * item?.quantity;
+
+            // Add unique category delivery charge
+            const categoryId = p.category._id.toString();
+            const deliveryCharge = p.category.deliveryCharge || 0;
+
+            if (deliveryCharge > 0 && !categoryCharges.has(categoryId)) {
+                categoryCharges.set(categoryId, deliveryCharge);
+            }
+        }
+
+        const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
+            (acc, charge) => acc + charge,
+            0
+        );
+        order.subtotal = subtotal;
+        order.deliveryCharge = totalDeliveryCharge;
+        order.orderAmount = subtotal - (order?.discount || 0) + totalDeliveryCharge;
+
+        await order.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(200).json(new ApiResponse(200, order, "Item quantity added successfully"));
+
+    } catch (err) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error("Add Item Quantity Error:", err.message);
+        return res.status(500).json({ success: false, message: err.message || "Internal server error" });
+    }
+};
+
 const verifyPayment = async (req, res) => {
     const session = await mongoose.startSession();
 
@@ -847,7 +951,7 @@ const awbReject = async (req, res) => {
 //                  FETCH ORDERS CONTROLLERS
 // ******************************************************
 
-export const getOrdersByDate = asyncHandler(async (req, res) => {
+const getOrdersByDate = asyncHandler(async (req, res) => {
     const { startDate, endDate } = req.query;
 
     /* ------------------------- 1. Validate Inputs ------------------------- */
@@ -1218,10 +1322,12 @@ export {
     createCodOrder,
     createOnlineOrder,
     updateOrder,
+    addItemQuantityInOrder,
     verifyPayment,
     getAllOrdersByUser,
     getOrderById,
     getAllOrders,
+    getOrdersByDate,
     createAbandonedOrderFromCart,
     holdAbandonedOrder,
     acceptOrder,
