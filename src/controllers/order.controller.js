@@ -425,13 +425,8 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
 });
 
 const updateOrder = asyncHandler(async (req, res) => {
-    const session = await mongoose.startSession();
-
     try {
-        const {
-            orderId,
-        } = req.body;
-
+        const orderId = req?.params?._id;
         const updates = req?.body;
 
         if (
@@ -445,50 +440,25 @@ const updateOrder = asyncHandler(async (req, res) => {
             throw new ApiError(400, 'Order not found.');
         }
 
+        if (foundOrder?.shipmentId) {
+            throw new ApiError(409, 'Order is created at shiprocket');
+        }
+
         const updatedOrder = await Order.findByIdAndUpdate(
             orderId,
             {
-                updates
+                ...updates
             },
             { new: true }
         );
 
-        // await session.withTransaction(async () => {
-        //     // Save order
-        //     await newOrderDoc.save({ session });
-
-        //     // Decrement stock
-        //     const bulkOps = cart.items.map(it => ({
-        //         updateOne: {
-        //             filter: {
-        //                 _id: it.productId._id,
-        //                 totalStock: { $gte: it.quantity },
-        //                 [`variants.${it.variantName}`]: { $gte: it.quantity }
-        //             },
-        //             update: {
-        //                 $inc: {
-        //                     totalStock: -it.quantity,
-        //                     [`variants.${it.variantName}`]: -it.quantity
-        //                 }
-        //             }
-        //         }
-        //     }));
-
-        //     const bulkRes = await Product.bulkWrite(bulkOps, { session });
-        //     const failed = bulkRes.modifiedCount !== cart.items.length;
-        //     if (failed) throw new ApiError(404, 'One or more items are out of stock.');
-
-        // });
-
         return res.status(201).json(
-            new ApiResponse(201, { order }, "Order updated Successfully")
+            new ApiResponse(201, { updatedOrder }, "Order updated Successfully")
         );
 
     } catch (err) {
         console.error('Error updating order:', err.message);
         return res.status(500).json({ message: err.message || 'Internal server error' });
-    } finally {
-        session.endSession();
     }
 });
 
@@ -1247,6 +1217,7 @@ export {
     createPosOrder,
     createCodOrder,
     createOnlineOrder,
+    updateOrder,
     verifyPayment,
     getAllOrdersByUser,
     getOrderById,
