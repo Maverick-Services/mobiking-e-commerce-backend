@@ -37,10 +37,10 @@ router.route("/cod/new").post(verifyJWT, createCodOrder);
 router.route("/online/new").post(verifyJWT, createOnlineOrder);
 router.route("/online/verify").post(verifyJWT, verifyPayment);
 router.route("/user").get(verifyJWT, getAllOrdersByUser);
-router.route("/").get(verifyJWT, getAllOrders);
 router.route("/:_id").put(verifyJWT, updateOrder);
-router.route("/:_id").get(verifyJWT, getOrderById);
+router.route("/details/:_id").get(verifyJWT, getOrderById);
 router.route("/custom").get(verifyJWT, getOrdersByDate);
+router.route("/").get(verifyJWT, getAllOrders);
 
 //Admin Order Routes
 router.route("/hold").post(verifyJWT, holdAbandonedOrder);
