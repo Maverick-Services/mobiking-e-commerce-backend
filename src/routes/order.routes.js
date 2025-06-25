@@ -20,7 +20,8 @@ import {
     getOrdersByDate,
     getOrderById,
     updateOrder,
-    addItemQuantityInOrder
+    addItemQuantityInOrder,
+    removeItemQuantityInOrder
 } from "../controllers/order.controller.js";
 import {
     assignBestCourier,
@@ -40,7 +41,7 @@ router.route("/online/verify").post(verifyJWT, verifyPayment);
 router.route("/user").get(verifyJWT, getAllOrdersByUser);
 router.route("/:_id").put(verifyJWT, updateOrder);
 router.route("/items/add").post(verifyJWT, addItemQuantityInOrder);
-router.route("/items/remove").post(verifyJWT, updateOrder);
+router.route("/items/remove").post(verifyJWT, removeItemQuantityInOrder);
 router.route("/details/:_id").get(verifyJWT, getOrderById);
 router.route("/custom").get(verifyJWT, getOrdersByDate);
 router.route("/").get(verifyJWT, getAllOrders);
