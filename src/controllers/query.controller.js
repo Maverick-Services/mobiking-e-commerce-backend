@@ -9,7 +9,7 @@ import { ROLES } from "../constants.js";
 
 
 export const raiseQueryByUser = asyncHandler(async (req, res) => {
-    const { title, description } = req.body;
+    const { title, description, orderId } = req.body;
 
     // Ensure user is authenticated and has correct role
     const user = req.user;
@@ -24,6 +24,7 @@ export const raiseQueryByUser = asyncHandler(async (req, res) => {
 
     // 1️⃣ Create new query
     const newQuery = new Query({
+        orderId,
         title,
         description,
         raisedBy: user._id,
@@ -62,9 +63,9 @@ export const addReplyToQuery = asyncHandler(async (req, res) => {
     }
 
     // Check if query is not assigned yet
-    if (!query?.assignedTo) {
-        throw new ApiError(403, "Query not assigned yet");
-    }
+    // if (!query?.assignedTo) {
+    //     throw new ApiError(403, "Query not assigned yet");
+    // }
 
     // Add reply
     const reply = {
@@ -155,9 +156,9 @@ export const closeQuery = asyncHandler(async (req, res) => {
         throw new ApiError(409, "Query is already resolved");
     }
 
-    if (!query?.assignedTo) {
-        throw new ApiError(409, "Cannot resolve an unassigned query");
-    }
+    // if (!query?.assignedTo) {
+    //     throw new ApiError(409, "Cannot resolve an unassigned query");
+    // }
 
     /* 3️⃣  Build resolution reply */
     // const resolutionReply = {

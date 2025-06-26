@@ -25,6 +25,11 @@ const querySchema = new mongoose.Schema(
             type: Date,
             default: Date.now
         },
+        orderId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Order",
+            required: true
+        },
         raisedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
