@@ -255,6 +255,13 @@ export const getQueries = asyncHandler(async (req, res) => {
         .populate("raisedBy", "name email role")
         .populate("assignedTo", "name email role")
         .populate("replies.messagedBy", "name email role")
+        .populate({
+            path: "orderId",
+            populate: {
+                path: "items.productId",
+                model: "Product"
+            }
+        })
         .sort({ createdAt: -1 });
 
     return res.status(200).json(
@@ -269,6 +276,13 @@ export const getQueriesForLoggedInUser = asyncHandler(async (req, res) => {
         .populate("raisedBy", "name email role")
         .populate("assignedTo", "name email role")
         .populate("replies.messagedBy", "name email role")
+        .populate({
+            path: "orderId",
+            populate: {
+                path: "items.productId",
+                model: "Product"
+            }
+        })
         .sort({ createdAt: -1 });
 
     return res.status(200).json(
