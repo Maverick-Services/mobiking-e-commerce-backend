@@ -7,6 +7,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 const assignBestCourier = async (req, res, next) => {
     try {
         const { shipmentId, shiprocketOrderId } = req.order;
+        const courierId = req?.body?.courierId;
         const token = req.shiprocketToken;
 
         if (!shipmentId)
@@ -15,22 +16,28 @@ const assignBestCourier = async (req, res, next) => {
                 message: "Shipment ID missing"
             });
 
+        if (!courierId)
+            return res.status(400).json({
+                success: false,
+                message: "Courier ID missing"
+            });
+
         // Skip if already assigned
-        const freshOrder = await Order.findById(req.order._id);
-        if (freshOrder.awbCode) return next();
+        const freshOrder = await Order.findById(req?.order?._id);
+        if (freshOrder?.awbCode) return next();
 
         const { data } = await axios.post(
             "https://apiv2.shiprocket.in/v1/external/courier/assign/awb",
-            { shipment_id: shipmentId },
+            { shipment_id: shipmentId, courier_id: courierId },
             { headers: { Authorization: `Bearer ${token}` } }
         );
 
         let awbCode = null;
         let courierName = null;
 
-        if (data.awb_assign_status === 1 && data.response?.data?.awb_code) {
-            awbCode = data.response.data.awb_code;
-            courierName = data.response.data.courier_name;
+        if (data?.awb_assign_status === 1 && data?.response?.data?.awb_code) {
+            awbCode = data?.response?.data?.awb_code;
+            courierName = data?.response?.data?.courier_name;
         } else if (data?.response?.awb_code) {
             awbCode = data.response.awb_code;
             courierName = data.response.courier_name;
@@ -60,7 +67,6 @@ const assignBestCourier = async (req, res, next) => {
                 pickupDate: shipData?.shipments?.pickup_scheduled_date || shipData.pickup_date,
                 shippingStatus: "Pickup Scheduled",
                 expectedDeliveryDate: shipData?.shipments?.etd || null,
-                status: 'Accepted'
             }
         }
 
@@ -72,6 +78,7 @@ const assignBestCourier = async (req, res, next) => {
                 awbCode,
                 courierName,
                 courierAssignedAt: new Date(),
+                status: 'Accepted',
                 shippingStatus: "Courier Assigned",
             },
             { new: true }
@@ -91,8 +98,15 @@ const assignBestCourier = async (req, res, next) => {
 // controllers/schedulePickup.js
 const schedulePickup = async (req, res, next) => {
     try {
-        const { shipmentId } = req.order;
+        const shipmentId = req?.order?.shipmentId || req?.body?.shipmentId;
+        const orderId = req?.order?._id || req?.body?.orderId;
         const token = req.shiprocketToken;
+
+        if (!orderId)
+            return res.status(400).json({
+                success: false,
+                message: "Order ID missing"
+            });
 
         if (!shipmentId)
             return res.status(400).json({
@@ -100,7 +114,7 @@ const schedulePickup = async (req, res, next) => {
                 message: "Shipment ID missing"
             });
 
-        const freshOrder = await Order.findById(req.order._id);
+        const freshOrder = await Order.findById(orderId);
         if (freshOrder.pickupScheduled) {
             res.status(200).json({
                 success: true,
@@ -141,20 +155,33 @@ const schedulePickup = async (req, res, next) => {
         // console.log("Track Data: ", trackData);
 
         // Update order
-        await Order.findByIdAndUpdate(
-            req.order._id,
+        const updatedOrder = await Order.findByIdAndUpdate(
+            orderId,
             {
                 pickupScheduled: true,
                 pickupTokenNumber,
                 pickupDate,
                 pickupSlot: pickupSlot || null,
-                status: 'Accepted',
+                // status: 'Accepted',
                 shippingStatus: "Pickup Scheduled",
                 expectedDeliveryDate: trackData?.data?.tracking_data?.etd || null
                 // status: "Shipped",
             },
             { new: true }
-        );
+        ).populate({
+            path: 'userId',
+            select: "-password -refreshToken"
+        })
+            .populate({
+                path: "items.productId",
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
+            })
+            .populate('addressId')
+            .exec();
 
         res.status(200).json({
             success: true,
@@ -163,6 +190,7 @@ const schedulePickup = async (req, res, next) => {
             pickupDate,
             pickupSlot: pickupSlot || null,
         });
+        req.order = updatedOrder;
         next();
 
     } catch (e) {
