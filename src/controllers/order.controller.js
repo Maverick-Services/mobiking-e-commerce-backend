@@ -463,208 +463,215 @@ const updateOrder = asyncHandler(async (req, res) => {
 });
 
 const addItemQuantityInOrder = async (req, res) => {
-    const session = await mongoose.startSession();
+  const session = await mongoose.startSession();
 
-    try {
-        const {
-            orderId,
-            productId,
-            variantName,
-            quantity = 1
-        } = req.body;
+  try {
+    const {
+      orderId,
+      productId,
+      variantName,
+      quantity = 1
+    } = req.body;
 
-        if (!orderId || !productId || !variantName || !quantity || quantity <= 0) {
-            throw new ApiError(400, "All fields are required and quantity must be > 0");
-        }
-
-        session.startTransaction();
-
-        const [order, product] = await Promise.all([
-            Order.findById(orderId).session(session),
-            Product.findById(productId).populate("category").session(session)
-        ]);
-
-        if (!order) throw new ApiError(404, "Order not found");
-        if (!product) throw new ApiError(404, "Product not found");
-
-        // Check stock availability
-        const availableVariantStock = product.variants.get(variantName);
-        if (!availableVariantStock || availableVariantStock < quantity || product.totalStock < quantity) {
-            throw new ApiError(400, `Item ${product.fullName} in variant ${variantName} is out of stock`);
-        }
-
-        // Update product stock
-        product.totalStock -= quantity;
-        product.variants?.set(variantName, availableVariantStock - quantity);
-        await product.save({ session });
-
-        // Check if item already exists in order
-        const existingItem = order.items.find(
-            item =>
-                item.productId.toString() === productId &&
-                item.variantName === variantName
-        );
-
-        if (existingItem) {
-            existingItem.quantity += quantity;
-        } else {
-            // Add new item entry
-            order.items.push({
-                productId,
-                name: product?.fullName,
-                price: product?.sellingPrice[product?.sellingPrice?.length - 1]?.price,
-                variantName,
-                quantity
-            });
-        }
-
-        // 🔁 Recalculate subtotal, deliveryCharge, and orderAmount
-        let subtotal = 0;
-        const categoryCharges = new Map();
-
-        for (const item of order.items) {
-            const p = await Product.findById(item.productId)
-                .populate("category")
-                .session(session);
-
-            if (!p || !p.category) {
-                throw new ApiError(400, `Product or category missing for ${item.productId}`);
-            }
-
-            // Calculate subtotal
-            subtotal += item?.price * item?.quantity;
-
-            // Add unique category delivery charge
-            const categoryId = p.category._id.toString();
-            const deliveryCharge = p.category.deliveryCharge || 0;
-
-            if (deliveryCharge > 0 && !categoryCharges.has(categoryId)) {
-                categoryCharges.set(categoryId, deliveryCharge);
-            }
-        }
-
-        const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
-            (acc, charge) => acc + charge,
-            0
-        );
-        order.subtotal = subtotal;
-        order.deliveryCharge = totalDeliveryCharge;
-        order.orderAmount = subtotal - (order?.discount || 0) + totalDeliveryCharge;
-
-        await order.save({ session });
-
-        await session.commitTransaction();
-        session.endSession();
-
-        return res.status(200).json(new ApiResponse(200, order, "Item quantity added successfully"));
-
-    } catch (err) {
-        await session.abortTransaction();
-        session.endSession();
-        console.error("Add Item Quantity Error:", err.message);
-        return res.status(500).json({ success: false, message: err.message || "Internal server error" });
+    if (!orderId || !productId || !variantName || !quantity || quantity <= 0) {
+      throw new ApiError(400, "All fields are required and quantity must be > 0");
     }
+
+    let updatedOrder;
+
+    await session.withTransaction(async () => {
+      const [order, product] = await Promise.all([
+        Order.findById(orderId).session(session),
+        Product.findById(productId).populate("category").session(session)
+      ]);
+
+      if (!order) throw new ApiError(404, "Order not found");
+      if (!product) throw new ApiError(404, "Product not found");
+
+      const availableVariantStock = product.variants.get(variantName);
+      if (!availableVariantStock || availableVariantStock < quantity || product.totalStock < quantity) {
+        throw new ApiError(400, `Item ${product.fullName} in variant ${variantName} is out of stock`);
+      }
+
+      // Decrease stock
+      product.totalStock -= quantity;
+      product.variants.set(variantName, availableVariantStock - quantity);
+      await product.save({ session });
+
+      // Update or add item to order
+      const existingItem = order.items.find(
+        item =>
+          item.productId.toString() === productId &&
+          item.variantName === variantName
+      );
+
+      if (existingItem) {
+        existingItem.quantity += quantity;
+      } else {
+        order.items.push({
+          productId,
+          name: product.fullName,
+          price: product.sellingPrice[product.sellingPrice.length - 1]?.price || 0,
+          variantName,
+          quantity
+        });
+      }
+
+      // Recalculate subtotal and deliveryCharge
+      let subtotal = 0;
+      const categoryCharges = new Map();
+
+      for (const item of order.items) {
+        const prod = await Product.findOne({ _id: item.productId })
+          .session(session)
+          .populate("category")
+          .exec();
+
+        if (!prod || !prod.category) {
+          throw new ApiError(400, `Product or category missing for ${item.productId}`);
+        }
+
+        subtotal += item.price * item.quantity;
+
+        const categoryId = prod.category._id.toString();
+        const deliveryCharge = prod.category.deliveryCharge || 0;
+
+        if (deliveryCharge > 0 && !categoryCharges.has(categoryId)) {
+          categoryCharges.set(categoryId, deliveryCharge);
+        }
+      }
+
+      const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
+        (acc, charge) => acc + charge,
+        0
+      );
+
+      order.subtotal = subtotal;
+      order.deliveryCharge = totalDeliveryCharge;
+      order.orderAmount = subtotal - (order.discount || 0) + totalDeliveryCharge;
+
+      updatedOrder = await order.save({ session });
+    });
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, updatedOrder, "Item quantity added successfully"));
+
+  } catch (err) {
+    console.error("Add Item Quantity Error:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Internal server error"
+    });
+  } finally {
+    session.endSession();
+  }
 };
 
 const removeItemQuantityInOrder = async (req, res) => {
-    const session = await mongoose.startSession();
+  const session = await mongoose.startSession();
 
-    try {
-        const {
-            orderId,
-            productId,
-            variantName,
-            quantity = 1
-        } = req.body;
+  try {
+    const {
+      orderId,
+      productId,
+      variantName,
+      quantity = 1
+    } = req.body;
 
-        if (!orderId || !productId || !variantName || !quantity || quantity <= 0) {
-            throw new ApiError(400, "All fields are required and quantity must be > 0");
-        }
-
-        session.startTransaction();
-
-        const [order, product] = await Promise.all([
-            Order.findById(orderId).session(session),
-            Product.findById(productId).populate("category").session(session)
-        ]);
-
-        if (!order) throw new ApiError(404, "Order not found");
-        if (!product) throw new ApiError(404, "Product not found");
-
-        // Find item in order
-        const existingItemIndex = order.items.findIndex(
-            item =>
-                item.productId.toString() === productId &&
-                item.variantName === variantName
-        );
-
-        if (existingItemIndex === -1) {
-            throw new ApiError(400, "Item not found in order");
-        }
-
-        const existingItem = order.items[existingItemIndex];
-
-        if (existingItem.quantity < quantity) {
-            throw new ApiError(400, "Cannot remove more quantity than exists in order");
-        }
-
-        // Restore stock
-        const currentVariantStock = product.variants.get(variantName) || 0;
-        product.totalStock += quantity;
-        product.variants.set(variantName, currentVariantStock + quantity);
-        await product.save({ session });
-
-        // Decrease quantity or remove item
-        existingItem.quantity -= quantity;
-        if (existingItem.quantity <= 0) {
-            order.items.splice(existingItemIndex, 1);
-        }
-
-        // 🔁 Recalculate subtotal, deliveryCharge, and orderAmount
-        let subtotal = 0;
-        const categoryCharges = new Map();
-
-        for (const item of order.items) {
-            const p = await Product.findById(item.productId)
-                .populate("category")
-                .session(session);
-
-            if (!p || !p.category) {
-                throw new ApiError(400, `Product or category missing for ${item.productId}`);
-            }
-
-            subtotal += item.price * item.quantity;
-
-            const categoryId = p.category._id.toString();
-            const deliveryCharge = p.category.deliveryCharge || 0;
-
-            if (deliveryCharge > 0 && !categoryCharges.has(categoryId)) {
-                categoryCharges.set(categoryId, deliveryCharge);
-            }
-        }
-
-        const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
-            (acc, charge) => acc + charge,
-            0
-        );
-
-        order.subtotal = subtotal;
-        order.deliveryCharge = totalDeliveryCharge;
-        order.orderAmount = subtotal - (order?.discount || 0) + totalDeliveryCharge;
-
-        await order.save({ session });
-
-        await session.commitTransaction();
-        session.endSession();
-
-        return res.status(200).json(new ApiResponse(200, order, "Item quantity removed successfully"));
-
-    } catch (err) {
-        await session.abortTransaction();
-        session.endSession();
-        console.error("Remove Item Quantity Error:", err.message);
-        return res.status(500).json({ success: false, message: err.message || "Internal server error" });
+    if (!orderId || !productId || !variantName || !quantity || quantity <= 0) {
+      throw new ApiError(400, "All fields are required and quantity must be > 0");
     }
+
+    let updatedOrder;
+
+    await session.withTransaction(async () => {
+      const [order, product] = await Promise.all([
+        Order.findById(orderId).session(session),
+        Product.findById(productId).populate("category").session(session)
+      ]);
+
+      if (!order) throw new ApiError(404, "Order not found");
+      if (!product) throw new ApiError(404, "Product not found");
+
+      // Find item in order
+      const existingItemIndex = order.items.findIndex(
+        item =>
+          item.productId.toString() === productId &&
+          item.variantName === variantName
+      );
+
+      if (existingItemIndex === -1) {
+        throw new ApiError(400, "Item not found in order");
+      }
+
+      const existingItem = order.items[existingItemIndex];
+
+      if (existingItem.quantity < quantity) {
+        throw new ApiError(400, "Cannot remove more quantity than exists in order");
+      }
+
+      // Restore stock
+      const currentVariantStock = product.variants.get(variantName) || 0;
+      product.totalStock += quantity;
+      product.variants.set(variantName, currentVariantStock + quantity);
+      await product.save({ session });
+
+      // Decrease quantity or remove item
+      existingItem.quantity -= quantity;
+      if (existingItem.quantity <= 0) {
+        order.items.splice(existingItemIndex, 1);
+      }
+
+      // 🔁 Recalculate subtotal, deliveryCharge, and orderAmount
+      let subtotal = 0;
+      const categoryCharges = new Map();
+
+      for (const item of order.items) {
+        const p = await Product.findOne({ _id: item.productId })
+          .session(session)
+          .populate("category")
+          .exec();
+
+        if (!p || !p.category) {
+          throw new ApiError(400, `Product or category missing for ${item.productId}`);
+        }
+
+        subtotal += item.price * item.quantity;
+
+        const categoryId = p.category._id.toString();
+        const deliveryCharge = p.category.deliveryCharge || 0;
+
+        if (deliveryCharge > 0 && !categoryCharges.has(categoryId)) {
+          categoryCharges.set(categoryId, deliveryCharge);
+        }
+      }
+
+      const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
+        (acc, charge) => acc + charge,
+        0
+      );
+
+      order.subtotal = subtotal;
+      order.deliveryCharge = totalDeliveryCharge;
+      order.orderAmount = subtotal - (order.discount || 0) + totalDeliveryCharge;
+
+      updatedOrder = await order.save({ session });
+    });
+
+    return res.status(200).json(
+      new ApiResponse(200, updatedOrder, "Item quantity removed successfully")
+    );
+
+  } catch (err) {
+    console.error("Remove Item Quantity Error:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Internal server error"
+    });
+  } finally {
+    session.endSession();
+  }
 };
 
 const verifyPayment = async (req, res) => {
