@@ -874,7 +874,7 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
             billing_address: foundOrder?.address || "Rohini Delhi",
             billing_address: foundOrder?.address || "",
             billing_city: foundOrder?.city || foundOrder.addressId?.city,
-            billing_pincode: foundOrder?.pinCode || foundOrder.addressId?.pinCode,
+            billing_pincode: foundOrder?.pincode || foundOrder.addressId?.pinCode,
             billing_state: foundOrder?.state || foundOrder.addressId?.state,
             billing_country: foundOrder?.country || "India",
             billing_email: foundOrder?.email ? foundOrder.email : "",
