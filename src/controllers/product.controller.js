@@ -159,7 +159,7 @@ const editProduct = asyncHandler(async (req, res) => {
         !_id ||
         !slug ||
         !name || !fullName || !description ||
-        !price || !categoryId
+        price == undefined || price == null || !categoryId
     ) {
         throw new ApiError(400, "Details not found");
     }
