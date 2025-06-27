@@ -1416,7 +1416,8 @@ const postPickupCancel = async (req, res, next) => {
     //If order is picked up then call next controller for rto
     const pickupCheck = await checkPickupStatus(order?.shipmentId, req?.shiprocketToken);
 
-    if (pickupCheck?.completed) next();
+    if (pickupCheck?.completed)  
+        return res.status(400).json({ message: 'Order cannot be cancelled as it is already picked up' });
 
     if (order?.pickupDate && order?.shippingStatus === 'Pickup Scheduled') {
         // Initiate RTO
@@ -1444,7 +1445,8 @@ const postPickupCancel = async (req, res, next) => {
         return res.json({ message: 'Pickup and Order cancelled, stock restored' });
     }
     else
-        next();
+        // fallback
+        return res.status(400).json({ message: 'Order cannot be cancelled as it is already picked up' });
 };
 
 

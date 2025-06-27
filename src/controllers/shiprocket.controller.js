@@ -329,6 +329,8 @@ const checkPickupStatus = async (shipmentId, token) => {
             "PICKED UP",
             'In Transit',
             'Shipment picked up',
+            'Delivered',
+            'RTO'
         ]?.some((s) => status?.toLowerCase()?.includes(s?.toLowerCase()));
 
         return {

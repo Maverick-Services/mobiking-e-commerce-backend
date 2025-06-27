@@ -688,8 +688,9 @@ const placeCancelRequest = asyncHandler(async (req, res) => {
 
     /* --------------- 4. block if return requests placed already --------------- */
     const reutrnRaised = foundOrder.requests.some(
-        (r) => r?.type === "Return" ||
-            (!r?.isResolved || (r?.isResolved && r?.status == "Rejected"))
+        (r) => r?.type === "Return" 
+        // ||
+            // (!r?.isResolved || (r?.isResolved && r?.status == "Rejected"))
     );
     if (reutrnRaised) {
         throw new ApiError(
@@ -699,7 +700,8 @@ const placeCancelRequest = asyncHandler(async (req, res) => {
     }
 
     const warrantyRaised = foundOrder.requests.some(
-        (r) => r?.type === "Warranty" && !r?.isResolved
+        (r) => r?.type === "Warranty" 
+        // || !r?.isResolved
     );
     if (warrantyRaised) {
         throw new ApiError(
@@ -844,20 +846,14 @@ const rejectCancelRequest = asyncHandler(async (req, res) => {
 });
 
 const placeReturnRequest = asyncHandler(async (req, res) => {
-
-})
-
-/* --------------------------------------------------------------------------
-   Reject RETURN request
--------------------------------------------------------------------------- */
-const rejectReturnRequest = asyncHandler(async (req, res) => {
     const { reason, orderId } = req.body;
 
-    /* 1. validation */
-    if (!reason || !orderId)
+    // 1️⃣ Basic Validation
+    if (!reason || !orderId) {
         throw new ApiError(400, "Complete details not found");
+    }
 
-    /* 2. fetch order */
+    // 2️⃣ Fetch the order
     const foundOrder = await Order.findById(orderId)
         .populate({ path: "userId", select: "-password -refreshToken" })
         .populate({
@@ -870,18 +866,128 @@ const rejectReturnRequest = asyncHandler(async (req, res) => {
 
     if (!foundOrder) throw new ApiError(404, "Order does not exist");
 
-    /* 3. ensure a return request exists */
-    if (!foundOrder.requests.some(r => r.type === "Return"))
+    // 3️⃣ Ensure order is delivered
+    if (foundOrder.status !== "Delivered") {
+        throw new ApiError(409, `Order cannot be returned unless it is Delivered`);
+    }
+
+    // 4️⃣ Block duplicate/unresolved Return requests
+    const returnRaised = foundOrder.requests.some(
+        (r) => r?.type === "Return"
+    );
+    if (returnRaised) {
+        throw new ApiError(409, "A return request is already in place for this order");
+    }
+
+    // 5️⃣ Block if Cancel request already placed
+    const cancelRaised = foundOrder.requests.some(
+        (r) => r?.type === "Cancel" && 
+        (!r?.isResolved || (r?.isResolved && r?.status !== "Rejected"))
+    );
+    if (cancelRaised) {
+        throw new ApiError(409, "A cancellation request is already pending for this order");
+    }
+
+    // 6️⃣ Block if Warranty request already placed
+    const warrantyRaised = foundOrder.requests.some(
+        (r) => r?.type === "Warranty" && 
+        (!r?.isResolved || (r?.isResolved && r?.status !== "Rejected"))
+    );
+    if (warrantyRaised) {
+        throw new ApiError(409, "A warranty request is already pending for this order");
+    }
+
+    // 7️⃣ Build request object
+    const newRequest = {
+        type: "Return",
+        isRaised: true,
+        raisedAt: new Date().toISOString(),
+        isResolved: false,
+        status: "Pending",
+        reason,
+    };
+
+    // 8️⃣ Push the request to the order
+    const updatedOrder = await Order.findByIdAndUpdate(
+        orderId,
+        { $push: { requests: newRequest } },
+        { new: true }
+    )
+        .populate({ path: "userId", select: "-password -refreshToken" })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: { path: "category", model: "SubCategory" },
+        })
+        .populate("addressId")
+        .exec();
+
+    if (!updatedOrder) {
+        throw new ApiError(500, "Could not attach return request to order");
+    }
+
+    // ✅ Respond
+    return res.status(200).json(
+        new ApiResponse(200, updatedOrder, "Return request placed successfully")
+    );
+});
+
+/* --------------------------------------------------------------------------
+   Reject RETURN request
+-------------------------------------------------------------------------- */
+const rejectReturnRequest = asyncHandler(async (req, res) => {
+    const { reason, orderId } = req.body;
+
+    // 1️⃣ Basic validation
+    if (!reason || !orderId) {
+        throw new ApiError(400, "Complete details not found");
+    }
+
+    if (req?.user?.role === ROLES.USER) {
+        throw new ApiError(409, "User not authorized to reject request");
+    }
+
+    // 2️⃣ Fetch the order
+    const foundOrder = await Order.findById(orderId)
+        .populate({ path: "userId", select: "-password -refreshToken" })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: { path: "category", model: "SubCategory" },
+        })
+        .populate("addressId")
+        .exec();
+
+    if (!foundOrder) throw new ApiError(404, "Order does not exist");
+
+    // 3️⃣ Ensure a return request exists
+    const existingRequest = foundOrder.requests.some(
+        (r) => r.type === "Return"
+    );
+    if (!existingRequest) {
         throw new ApiError(409, "No return request is placed");
+    }
 
-    if (foundOrder.requests.some(r => r.type === "Return" && r.status === "Rejected"))
+    // 4️⃣ Block if already rejected
+    const alreadyRejected = foundOrder.requests.some(
+        (r) => r.type === "Return" && r.status === "Rejected"
+    );
+    if (alreadyRejected) {
         throw new ApiError(409, "Return request is already rejected");
+    }
 
-    /* 4. reject only if currently Pending */
+    // 5️⃣ Reject the request only if it's pending
     const updatedOrder = await Order.findOneAndUpdate(
         {
             _id: orderId,
-            requests: { $elemMatch: { type: "Return", status: "Pending", isRaised: true, isResolved: false } },
+            requests: {
+                $elemMatch: {
+                    type: "Return",
+                    status: "Pending",
+                    isRaised: true,
+                    isResolved: false,
+                },
+            },
         },
         {
             $set: {
@@ -902,12 +1008,16 @@ const rejectReturnRequest = asyncHandler(async (req, res) => {
         .populate("addressId")
         .exec();
 
-    if (!updatedOrder)
+    if (!updatedOrder) {
         throw new ApiError(409, "No pending return request found to reject");
+    }
 
+    // ✅ Respond
     return res
         .status(200)
-        .json(new ApiResponse(200, updatedOrder, "Return request rejected successfully"));
+        .json(
+            new ApiResponse(200, updatedOrder, "Return request rejected successfully")
+        );
 });
 
 const placeWarrantyRequest = asyncHandler(async (req, res) => {
