@@ -1085,8 +1085,8 @@ const placeWarrantyRequest = asyncHandler(async (req, res) => {
     /* --------------------- 3. ensure the order is in valid state for return ---------------- */
     const warrantyStates = ["Delivered"]; // adjust as needed
     if (
-        !warrantyStates.includes(foundOrder.status) ||
-        !warrantyStates.includes(foundOrder?.shippingStatus)
+        !warrantyStates.includes(foundOrder.status) 
+        // || !warrantyStates.includes(foundOrder?.shippingStatus)
     ) {
         throw new ApiError(
             409,
