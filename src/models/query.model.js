@@ -28,7 +28,7 @@ const querySchema = new mongoose.Schema(
         orderId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Order",
-            required: true
+            // required: true
         },
         raisedBy: {
             type: mongoose.Schema.Types.ObjectId,
