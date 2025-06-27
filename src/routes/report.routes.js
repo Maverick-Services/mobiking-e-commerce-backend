@@ -7,6 +7,7 @@ import {
     getDailyOrderCounts,
     getDailyOrderSourceCounts,
     getDailyCustomerSignupCounts,
+    getDailySalesInRange,
 } from "../controllers/reports.controller.js"; // adjust the path as needed
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 
@@ -21,8 +22,9 @@ router.route("/customers/").get(verifyJWT, getDailyCustomerSignupCounts);
 router.route("/orders/count").get(verifyJWT, getTotalOrders);
 
 // Chart API
-router.route("/orders/").get(verifyJWT, getDailyOrderCounts);
+router.route("/orders").get(verifyJWT, getDailyOrderCounts);
 router.route("/orders/filtered").get(verifyJWT, getDailyOrderSourceCounts);
+router.route("/sales").get(verifyJWT, getDailySalesInRange);
 
 router.route("/sales/total").get(verifyJWT, getTotalSales);
 router.route("/sales/custom").get(verifyJWT, getSalesInRange);

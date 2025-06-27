@@ -69,7 +69,7 @@ export const getTotalSales = async (req, res) => {
   }
 };
 
-// 4. Sales in Date Range (Delivered orders)
+// 4. Sales in Date Range
 export const getSalesInRange = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
@@ -255,5 +255,51 @@ export const getDailyCustomerSignupCounts = asyncHandler(async (req, res) => {
 
   return res.status(200).json(
     new ApiResponse(200, { dates, customerCounts }, "Daily customer signup counts")
+  );
+});
+
+export const getDailySalesInRange = asyncHandler(async (req, res) => {
+  const { startDate, endDate } = req.query;
+  if (!startDate || !endDate) {
+    throw new ApiError(400, "Start and end date required");
+  }
+
+  const from = new Date(startDate);
+  const to = new Date(new Date(endDate).setHours(23, 59, 59, 999));
+  const days = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+
+  // Step 1: Aggregate sales by day
+  const agg = await Order.aggregate([
+    {
+      $match: {
+        abondonedOrder: false,
+        status: {
+          $nin: ["Rejected", "Cancelled", "Returned", "Replaced", "Hold"]
+        },
+        createdAt: { $gte: from, $lte: to }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
+        },
+        total: { $sum: "$orderAmount" }
+      }
+    }
+  ]);
+
+  // Step 2: Map data to date → sales
+  const salesMap = {};
+  for (const { _id, total } of agg) {
+    salesMap[_id.day] = total;
+  }
+
+  // Step 3: Generate ordered date array and fill values
+  const dates = getDateRangeArray(days);
+  const salesCounts = dates.map(date => salesMap[date] || 0);
+
+  return res.status(200).json(
+    new ApiResponse(200, { dates, salesCounts }, "Daily sales data fetched")
   );
 });
