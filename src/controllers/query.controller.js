@@ -79,9 +79,16 @@ export const addReplyToQuery = asyncHandler(async (req, res) => {
 
     // Populate before sending
     const populated = await Query.findById(updatedQuery._id)
-        .populate("raisedBy", "name email role")
-        .populate("assignedTo", "name email role")
-        .populate("replies.messagedBy", "name email role");
+        .populate("raisedBy", "name email phone role")
+        .populate("assignedTo", "name email phone role")
+        .populate("replies.messagedBy", "name email phone role")
+        .populate({
+            path: "orderId",
+            populate: {
+                path: "items.productId",
+                model: "Product"
+            }
+        });
 
     return res.status(200).json(
         new ApiResponse(200, populated, "Reply added to query successfully")
@@ -176,9 +183,16 @@ export const closeQuery = asyncHandler(async (req, res) => {
 
     /* 5️⃣  Populate for response */
     const populated = await Query.findById(saved._id)
-        .populate("raisedBy", "name email")
-        .populate("assignedTo", "name email")
-        .populate("replies.messagedBy", "name email role");
+        .populate("raisedBy", "name email phone role")
+        .populate("assignedTo", "name email phone role")
+        .populate("replies.messagedBy", "name email phone role")
+        .populate({
+            path: "orderId",
+            populate: {
+                path: "items.productId",
+                model: "Product"
+            }
+        });
 
     return res.status(200).json(
         new ApiResponse(200, populated, "Query resolved successfully")
@@ -229,9 +243,16 @@ export const addRatingToQuery = asyncHandler(async (req, res) => {
 
     // Populate before sending
     const populated = await Query.findById(updatedQuery._id)
-        .populate("raisedBy", "name email role")
-        .populate("assignedTo", "name email role")
-        .populate("replies.messagedBy", "name email role");
+        .populate("raisedBy", "name email phone role")
+        .populate("assignedTo", "name email phone role")
+        .populate("replies.messagedBy", "name email phone role")
+        .populate({
+            path: "orderId",
+            populate: {
+                path: "items.productId",
+                model: "Product"
+            }
+        });
 
     return res.status(200).json(
         new ApiResponse(200, populated, "Rating submitted successfully")
@@ -252,9 +273,9 @@ export const getQueries = asyncHandler(async (req, res) => {
     const queries = await Query.find(
         filter
     )
-        .populate("raisedBy", "name email role")
-        .populate("assignedTo", "name email role")
-        .populate("replies.messagedBy", "name email role")
+        .populate("raisedBy", "name email phone role")
+        .populate("assignedTo", "name email phone role")
+        .populate("replies.messagedBy", "name email phone role")
         .populate({
             path: "orderId",
             populate: {
@@ -273,9 +294,9 @@ export const getQueriesForLoggedInUser = asyncHandler(async (req, res) => {
     const userId = req.user?._id;
 
     const queries = await Query.find({ raisedBy: userId })
-        .populate("raisedBy", "name email role")
-        .populate("assignedTo", "name email role")
-        .populate("replies.messagedBy", "name email role")
+        .populate("raisedBy", "name email phone role")
+        .populate("assignedTo", "name email phone role")
+        .populate("replies.messagedBy", "name email phone role")
         .populate({
             path: "orderId",
             populate: {
