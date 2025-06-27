@@ -21,7 +21,8 @@ import {
     getOrderById,
     updateOrder,
     addItemQuantityInOrder,
-    removeItemQuantityInOrder
+    removeItemQuantityInOrder,
+    getFilteredOrdersByDate
 } from "../controllers/order.controller.js";
 import {
     assignBestCourier,
@@ -43,6 +44,7 @@ router.route("/:_id").put(verifyJWT, updateOrder);
 router.route("/items/add").post(verifyJWT, addItemQuantityInOrder);
 router.route("/items/remove").post(verifyJWT, removeItemQuantityInOrder);
 router.route("/details/:_id").get(verifyJWT, getOrderById);
+router.route("/custom/filtered").get(verifyJWT, getFilteredOrdersByDate);
 router.route("/custom").get(verifyJWT, getOrdersByDate);
 router.route("/").get(verifyJWT, getAllOrders);
 
