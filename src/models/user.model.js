@@ -10,6 +10,10 @@ const permissionSchema = new mongoose.Schema({
 }, { _id: false });
 
 const userSchema = new mongoose.Schema({
+    active: {
+        type: Boolean,
+        default: true
+    },
     name: {
         type: String,
         trim: true
@@ -18,6 +22,16 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true,
         unique: true
+    },
+    gender: String,
+    dob: String,
+    orderCount: {
+        type: Number,
+        default: 0
+    },
+    callingCode: {
+        type: Number,
+        default: 91
     },
     phoneNo: {
         type: String,

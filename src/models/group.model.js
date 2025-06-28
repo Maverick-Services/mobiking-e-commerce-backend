@@ -8,8 +8,9 @@ const groupSchema = new mongoose.Schema({
     },
     sequenceNo: {
         type: Number,
-        required: true,
-        unique: [true, "Sequence number must be unique"]
+        default: 0
+        // required: true,
+        // unique: [true, "Sequence number must be unique"]
     },
     banner: {
         type: String,

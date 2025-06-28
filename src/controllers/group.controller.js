@@ -18,9 +18,9 @@ const createGroup = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Details not found");
     }
 
-    //create new product
+    //create new group
     const newGroup = await Group.create({
-        name, sequenceNo, active,
+        name, sequenceNo: sequenceNo || 0, active,
         isBannerVisble, isSpecial,
         banner: banner ? banner : ""
     });
@@ -57,7 +57,7 @@ const editGroup = asyncHandler(async (req, res) => {
         req?.params?._id,
         {
             name,
-            sequenceNo: sequenceNo ? sequenceNo : foundGroup?.sequenceNo,
+            sequenceNo: sequenceNo ? sequenceNo : foundGroup?.sequenceNo || 0,
             active: active ? active : foundGroup?.active,
             isBannerVisble: isBannerVisble ? isBannerVisble : foundGroup?.isBannerVisble,
             isSpecial: isSpecial ? isSpecial : foundGroup?.isSpecial,

@@ -56,7 +56,7 @@ const loginUser = asyncHandler(async (req, res) => {
         })
             .populate("address")
             .populate("wishlist")
-            // .populate("orders")
+            .populate("orders")
             .exec();
         //populate orders
 
@@ -90,13 +90,15 @@ const loginUser = asyncHandler(async (req, res) => {
             })
                 .populate("wishlist")
                 .populate("address")
-                // .populate("orders")
+                .populate("orders")
                 .exec();
             //populate orders
 
         } else {
             if (user?.role !== role) {
                 throw new ApiError(400, `Employee Account Registered with the phone number ${user?.phoneNo}`);
+            }else{
+                
             }
         }
 

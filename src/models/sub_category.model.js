@@ -15,8 +15,9 @@ const subCatgeorySchema = new mongoose.Schema({
     },
     sequenceNo: {
         type: Number,
-        required: [true, "Sequence Number already exist"],
-        unique: [true, "Sequence Number must be Unique"]
+        default: 0
+        // required: [true, "Sequence Number already exist"],
+        // unique: [true, "Sequence Number must be Unique"]
     },
     icon: {
         type: String

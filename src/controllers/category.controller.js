@@ -152,7 +152,9 @@ const createSubCategory = asyncHandler(async (req, res) => {
 
     //Todo: Add Images, upper, lower banner in the subcategories
 
-    if (!name || !slug || !sequenceNo || !categoryId) {
+    if (!name || !slug || 
+        // !sequenceNo || 
+        !categoryId) {
         throw new ApiError(400, "Details not found");
     }
 
@@ -192,7 +194,7 @@ const createSubCategory = asyncHandler(async (req, res) => {
 
     const newSubCategory = await SubCategory.create({
         name, slug, active,
-        sequenceNo, featured,
+        sequenceNo: sequenceNo || 0, featured,
         icon,
         upperBanner: upperBanner ? upperBanner : "",
         lowerBanner: lowerBanner ? lowerBanner : "",
@@ -241,7 +243,9 @@ const editSubCategory = asyncHandler(async (req, res) => {
 
     //Todo: Add Images, upper, lower banner in the subcategories
 
-    if (!_id || !name || !slug || !sequenceNo || !categoryId) {
+    if (!_id || !name || !slug || 
+        // !sequenceNo || 
+        !categoryId) {
         throw new ApiError(400, "Details not found");
     }
 
@@ -261,7 +265,8 @@ const editSubCategory = asyncHandler(async (req, res) => {
         { _id },
         {
             name, slug, active,
-            sequenceNo, featured,
+            sequenceNo: sequenceNo || foundSubCategory?.sequenceNo || 0,
+            featured,
             deliveryCharge,
             minOrderAmount,
             minFreeDeliveryOrderAmount,
