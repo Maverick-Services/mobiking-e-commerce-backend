@@ -1,5 +1,6 @@
 // controllers/dashboard.controller.js
 
+import mongoose from "mongoose";
 import { Order } from "../models/order.model.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -302,4 +303,60 @@ export const getDailySalesInRange = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, { dates, salesCounts }, "Daily sales data fetched")
   );
+});
+
+/**
+ * @route   POST /api/v1/universal/columns
+ * @body    { model: "ModelName", columns: ["field1", "field2"] }
+ */
+
+export const fetchModelColumns = asyncHandler(async (req, res) => {
+  const { model, columns } = req.body;
+
+  if (!model || !Array.isArray(columns) || columns.length === 0) {
+    throw new ApiError(400, "Model name and columns array are required");
+  }
+
+  // Get the model dynamically from mongoose
+  const Model = mongoose.models[model];
+  if (!Model) {
+    throw new ApiError(404, `Model '${model}' not found`);
+  }
+
+  // Detect reference fields to populate
+  const schemaPaths = Model.schema.paths;
+  const populateFields = [];
+
+  for (const col of columns) {
+    const path = schemaPaths[col];
+    if (!path) {
+      console.warn(`⚠️ Column '${col}' not found in schema of model '${model}'`);
+      continue;
+    }
+
+    // console.log(path)
+    // Check if the field is an ObjectId with a ref
+    if (
+      path.instance === "ObjectId" &&
+      path.options &&
+      typeof path.options.ref === "string"
+    ) {
+      populateFields.push(col);
+    }
+  }
+
+  // Build projection: "field1 field2"
+  const projection = columns.join(" ");
+
+  // Build query
+  let query = Model.find({}, projection);
+  for (const field of populateFields) {
+    query = query.populate(field);
+  }
+
+  const data = await query.limit(100).exec(); // optional limit
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, data, `${model} columns fetched successfully`));
 });

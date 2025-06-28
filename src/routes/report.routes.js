@@ -8,6 +8,7 @@ import {
     getDailyOrderSourceCounts,
     getDailyCustomerSignupCounts,
     getDailySalesInRange,
+    fetchModelColumns,
 } from "../controllers/reports.controller.js"; // adjust the path as needed
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 
@@ -28,5 +29,8 @@ router.route("/sales").get(verifyJWT, getDailySalesInRange);
 
 router.route("/sales/total").get(verifyJWT, getTotalSales);
 router.route("/sales/custom").get(verifyJWT, getSalesInRange);
+
+//Reports API
+router.route("/modules").post(verifyJWT, fetchModelColumns);
 
 export default router;
