@@ -7,6 +7,7 @@ import {
     updateProductStock
 } from "../controllers/product.controller.js";
 import { upload } from "../middlewares/multer.middlewares.js";
+import { getPaginatedProducts } from "../controllers/pagination.controller.js";
 
 const router = Router()
 
@@ -19,6 +20,8 @@ router.route("/category/:categoryId").get(getProductsByCategory);
 router.route("/group/:groupId").get(getProductsByGroup);
 router.route("/:_id").get(verifyJWT, getProductById);
 router.route("/details/:slug").get(getProductBySlug);
+//Paginated Products
+router.route("/all/paginated").get(verifyJWT, getPaginatedProducts);
 
 //Stock Routes
 router.route("/addProductStock").post(verifyJWT, updateProductStock);

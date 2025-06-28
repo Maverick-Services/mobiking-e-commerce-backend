@@ -31,6 +31,7 @@ import {
     shiprocketWebhook,
     verifyShiprocketToken
 } from "../controllers/shiprocket.controller.js";
+import { getPaginatedOrders } from "../controllers/pagination.controller.js";
 
 const router = Router()
 
@@ -47,6 +48,8 @@ router.route("/details/:_id").get(verifyJWT, getOrderById);
 router.route("/custom/filtered").get(verifyJWT, getFilteredOrdersByDate);
 router.route("/custom").get(verifyJWT, getOrdersByDate);
 router.route("/").get(verifyJWT, getAllOrders);
+//Paginated Orders
+router.route("/paginated").get(verifyJWT, getPaginatedOrders);
 
 //Admin Order Routes
 router.route("/hold").post(verifyJWT, holdAbandonedOrder);

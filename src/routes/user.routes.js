@@ -27,6 +27,7 @@ import {
     deleteAddress, editAddress,
     getAllAddressByUser
 } from "../controllers/address.controller.js";
+import { getPaginatedUsers } from "../controllers/pagination.controller.js";
 
 const router = Router()
 
@@ -40,6 +41,8 @@ router.route("/employees/:_id").put(verifyJWT, editEmployee);
 router.route("/employees/:_id").delete(verifyJWT, deleteEmployee);
 router.route("/role/:role").get(verifyJWT, getUsersByRole);
 router.route("/:_id").get(verifyJWT, getUserById);
+//Paginated Users
+router.route("/all/paginated").get(verifyJWT, getPaginatedUsers);
 
 //Whishlist Routes
 router.route("/wishlist/add").post(verifyJWT, addProductInWishList);
