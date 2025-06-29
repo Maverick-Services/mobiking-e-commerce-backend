@@ -11,11 +11,11 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    imageUrl: {
+    image: {
       type: String,
       default: null,
     },
-    redirectUrl: {
+    redirect: {
       type: String,
       default: null,
     },

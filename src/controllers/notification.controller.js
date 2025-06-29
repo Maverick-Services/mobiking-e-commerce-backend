@@ -5,7 +5,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 /* Create Notification */
 export const createNotification = asyncHandler(async (req, res) => {
-  const { title, message, imageUrl, redirectUrl } = req.body;
+  const { title, message, image, redirect } = req.body;
 
   if (!title || !message) {
     throw new ApiError(400, "Title and message are required.");
@@ -14,8 +14,8 @@ export const createNotification = asyncHandler(async (req, res) => {
   const newNotification = await Notification.create({
     title,
     message,
-    imageUrl: imageUrl || null,
-    redirectUrl: redirectUrl || null,
+    image: image || null,
+    redirect: redirect || null,
     sentBy: req?.user?._id || null, // Optional, if auth is used
   });
 
