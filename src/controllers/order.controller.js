@@ -541,10 +541,11 @@ const addItemQuantityInOrder = async (req, res) => {
         }
       }
 
-      const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
-        (acc, charge) => acc + charge,
-        0
-      );
+    //   const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
+    //     (acc, charge) => acc + charge,
+    //     0
+    //   );
+      const totalDeliveryCharge =  Math.max(...Array.from(categoryCharges.values()));
 
       order.subtotal = subtotal;
       order.deliveryCharge = totalDeliveryCharge;
@@ -647,10 +648,11 @@ const removeItemQuantityInOrder = async (req, res) => {
         }
       }
 
-      const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
-        (acc, charge) => acc + charge,
-        0
-      );
+      const totalDeliveryCharge =  Math.max(...Array.from(categoryCharges.values()));
+    //   const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
+    //     (acc, charge) => acc + charge,
+    //     0
+    //   );
 
       order.subtotal = subtotal;
       order.deliveryCharge = totalDeliveryCharge;
