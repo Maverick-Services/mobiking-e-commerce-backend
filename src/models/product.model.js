@@ -33,6 +33,13 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    descriptionPoints: {
+        type: String,
+    },
+    keyInformation: {
+        type: mongoose.Schema.Types.Mixed,
+        default: []
+    },
     active: {
         type: Boolean,
         default: true
