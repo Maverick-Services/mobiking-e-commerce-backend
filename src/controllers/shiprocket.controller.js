@@ -365,15 +365,6 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
     const p = req.body;
     const srStatus = (p.current_status || p.shipment_status || "").toUpperCase();
 
-    /* 1) Ignore everything before PICKED UP ---------------------------------- */
-    const postPickupStatuses = [
-        "PICKED UP", "SHIPPED", "IN TRANSIT", "OUT FOR DELIVERY", "DELIVERED",
-        "CANCELLED",                      // late cancellation
-        "RTO INITIATED", "RTO IN TRANSIT", "RTO", "RTO DELIVERED"
-    ];
-    if (!postPickupStatuses.includes(srStatus))
-        return res.status(200).json({ success: true, ignored: true });
-
     /* 2) Locate order -------------------------------------------------------- */
     const order = await Order.findOne({
         $or: [
@@ -382,6 +373,22 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
         ],
     });
     if (!order) return res.status(200).json({ success: true, unknown: true });
+
+    /* 4) Always overwrite scans if provided ---------------------------------- */
+    if (Array.isArray(p.scans) && p.scans.length){
+        await Order.findByIdAndUpdate(order._id, {
+            scans: p?.scans
+        }, { new: true }).exec();
+    };
+
+    /* 1) Ignore everything before PICKED UP ---------------------------------- */
+    const postPickupStatuses = [
+        "PICKED UP", "SHIPPED", "IN TRANSIT", "OUT FOR DELIVERY", "DELIVERED",
+        "CANCELLED",                      // late cancellation
+        "RTO INITIATED", "RTO IN TRANSIT", "RTO", "RTO DELIVERED"
+    ];
+    if (!postPickupStatuses.includes(srStatus))
+        return res.status(200).json({ success: true, ignored: true });
 
     const prevShip = (order.shippingStatus || "").toUpperCase();
     const nowISO = new Date().toISOString();
@@ -452,9 +459,6 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
             // Any post‑pickup status we didn’t foresee: just record it.
             break;
     }
-
-    /* 4) Always overwrite scans if provided ---------------------------------- */
-    if (Array.isArray(p.scans) && p.scans.length) upd.scans = p.scans;
 
     /* 5) Persist if anything changed ---------------------------------------- */
     if (Object.keys(upd).length > 1) {             // >1 because shippingStatus always set
