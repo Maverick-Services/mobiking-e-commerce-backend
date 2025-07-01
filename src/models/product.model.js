@@ -34,7 +34,7 @@ const productSchema = new mongoose.Schema({
         required: true,
     },
     descriptionPoints: {
-        type: String,
+        type: [String],
     },
     keyInformation: {
         type: mongoose.Schema.Types.Mixed,
