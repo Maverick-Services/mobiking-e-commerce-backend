@@ -156,7 +156,9 @@ const editProduct = asyncHandler(async (req, res) => {
     const {
         name, fullName, description,
         price, categoryId,
-        slug, active
+        slug, active,
+        descriptionPoints,
+        keyInformation
     } = req.body;
 
     //TODO: Add Images to it
