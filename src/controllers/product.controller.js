@@ -13,6 +13,7 @@ const createProduct = asyncHandler(async (req, res) => {
         slug, active, images,
         descriptionPoints,
         keyInformation,
+        basePrice, regularPrice
     } = req.body;
 
     //TODO: Add Images to it
@@ -56,7 +57,8 @@ const createProduct = asyncHandler(async (req, res) => {
         category: categoryId,
         images: images ? images : [],
         keyInformation,
-        descriptionPoints
+        descriptionPoints,
+        basePrice, regularPrice
     });
     if (!newProduct) {
         throw new ApiError(409, "Could not create product");
@@ -158,7 +160,8 @@ const editProduct = asyncHandler(async (req, res) => {
         price, categoryId,
         slug, active,
         descriptionPoints,
-        keyInformation
+        keyInformation, images,
+        basePrice, regularPrice
     } = req.body;
 
     //TODO: Add Images to it
@@ -199,6 +202,8 @@ const editProduct = asyncHandler(async (req, res) => {
             sellingPrice,
             descriptionPoints: descriptionPoints || foundProduct?.descriptionPoints,
             keyInformation: keyInformation || foundProduct?.keyInformation,
+            basePrice: basePrice || foundProduct?.basePrice, 
+            regularPrice: regularPrice || foundProduct?.regularPrice,
             category: categoryId,
             images: images ? images : foundProduct?.images
         },

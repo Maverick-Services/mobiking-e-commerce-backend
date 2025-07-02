@@ -65,6 +65,28 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    basePrice: {
+        type: Number,
+        min: 0,
+        set: v => parseFloat(Number(v).toFixed(3)), // Auto-round to 3 decimal places
+        validate: {
+            validator: function (v) {
+                return /^\d+(\.\d{3})?$/.test(v.toFixed(3)); // Ensure exactly 3 decimal places
+            },
+            message: props => `${props.value} is not valid. Must have exactly 3 decimal places.`
+        }
+    },
+    regularPrice: {
+        type: Number,
+        min: 0,
+        set: v => parseFloat(Number(v).toFixed(3)), // Auto-round to 3 decimal places
+        validate: {
+            validator: function (v) {
+                return /^\d+(\.\d{3})?$/.test(v.toFixed(3)); // Ensure exactly 3 decimal places
+            },
+            message: props => `${props.value} is not valid. Must have exactly 3 decimal places.`
+        }
+    },
     category: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'SubCategory',
