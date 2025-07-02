@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 
 const stockSchema = new mongoose.Schema({
+    vendor: {
+        type: String,
+        // required: true,
+    },
     variantName: {
         type: String,
         required: true,

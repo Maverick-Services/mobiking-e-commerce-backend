@@ -12,7 +12,7 @@ const createProduct = asyncHandler(async (req, res) => {
         price, categoryId,
         slug, active, images,
         descriptionPoints,
-        keyInformation
+        keyInformation,
     } = req.body;
 
     //TODO: Add Images to it
@@ -82,6 +82,7 @@ const createProduct = asyncHandler(async (req, res) => {
 
 const updateProductStock = asyncHandler(async (req, res) => {
     const {
+        vendor,
         variantName,
         purchasePrice,
         quantity,
@@ -90,6 +91,7 @@ const updateProductStock = asyncHandler(async (req, res) => {
 
     // Validate input
     if (
+        !vendor ||
         !variantName ||
         !purchasePrice ||
         !quantity ||
@@ -113,6 +115,7 @@ const updateProductStock = asyncHandler(async (req, res) => {
 
     // Create new stock entry
     const newProductStock = await Stock.create({
+        vendor,
         variantName,
         purchasePrice,
         quantity,
