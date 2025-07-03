@@ -6,6 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
 import { ROLES } from "../constants.js";
+import { Order } from "../models/order.model.js";
 
 
 export const raiseQueryByUser = asyncHandler(async (req, res) => {
@@ -38,6 +39,11 @@ export const raiseQueryByUser = asyncHandler(async (req, res) => {
     // 2️⃣ Push query ID into user's `queries` array
     await User.findByIdAndUpdate(user._id, {
         $push: { queries: savedQuery._id }
+    });
+    
+    // 2️⃣ Push query ID into order's `query'
+    await Order.findByIdAndUpdate(orderId, {
+        query: savedQuery._id
     });
 
     // 3️⃣ Return response

@@ -1183,6 +1183,13 @@ const getAllOrdersByUser = asyncHandler(async (req, res) => {
                 model: "SubCategory"
             }
         })
+        .populate({
+            path: "query",
+            populate: {
+                path: "replies.messagedBy",
+                model: "User"
+            }
+        })
         .sort({ createdAt: -1 })
     // .exec();
 

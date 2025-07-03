@@ -157,6 +157,13 @@ const orderSchema = new mongoose.Schema(
             required: true
         },
 
+        /****************  QUERIES  *****************/
+        query: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Query",
+            // required: true
+        },
+
         /************** Product/Itesm Details *******************/
         items: [itemsSchema],
         length: Number,
