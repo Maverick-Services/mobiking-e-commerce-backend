@@ -167,7 +167,7 @@ const removeProductFromCart = asyncHandler(async (req, res) => {
     // 3. Decrement quantity or remove if 1
     if (items[index].quantity > 1) {
         items[index].fullName = product?.fullName;
-        items[index].basePrice = product?.basePrice;
+        // items[index].basePrice = product?.basePrice;
         items[index].quantity -= 1;
         items[index].price = latestPrice; // Sync latest price
     } else {
