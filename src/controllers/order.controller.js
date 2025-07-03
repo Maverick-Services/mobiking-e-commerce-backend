@@ -1187,7 +1187,8 @@ const getAllOrdersByUser = asyncHandler(async (req, res) => {
             path: "query",
             populate: {
                 path: "replies.messagedBy",
-                model: "User"
+                model: "User",
+                select: "name email phone role"
             }
         })
         .sort({ createdAt: -1 })
