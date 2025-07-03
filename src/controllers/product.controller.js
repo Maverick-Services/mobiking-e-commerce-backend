@@ -58,7 +58,8 @@ const createProduct = asyncHandler(async (req, res) => {
         images: images ? images : [],
         keyInformation,
         descriptionPoints,
-        basePrice, regularPrice
+        basePrice: basePrice || 0, 
+        regularPrice: regularPrice || 0
     });
     if (!newProduct) {
         throw new ApiError(409, "Could not create product");
