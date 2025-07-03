@@ -68,6 +68,8 @@ const addProductInCart = asyncHandler(async (req, res) => {
 
         items[existingIndex] = {
             ...items[existingIndex].toObject(),
+            fullName: product?.fullName,
+            basePrice: product?.basePrice,
             quantity: newQty,
             price: latestPrice // sync to latest price
         };
@@ -79,6 +81,8 @@ const addProductInCart = asyncHandler(async (req, res) => {
 
         items.push({
             productId,
+            fullName: product?.fullName,
+            basePrice: product?.basePrice,
             variantName,
             quantity: qtyToAdd,
             price: latestPrice
@@ -162,6 +166,8 @@ const removeProductFromCart = asyncHandler(async (req, res) => {
 
     // 3. Decrement quantity or remove if 1
     if (items[index].quantity > 1) {
+        items[index].fullName = product?.fullName;
+        items[index].basePrice = product?.basePrice;
         items[index].quantity -= 1;
         items[index].price = latestPrice; // Sync latest price
     } else {

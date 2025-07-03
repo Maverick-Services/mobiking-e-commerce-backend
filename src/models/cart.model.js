@@ -6,6 +6,12 @@ export const itemsSchema = new mongoose.Schema({
         ref: 'Product',
         required: true
     },
+    fullName: {
+        type: String,
+    },
+    basePrice: {
+        type: String,
+    },
     variantName: {
         type: String,
         required: true,
