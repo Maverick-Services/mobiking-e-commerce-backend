@@ -202,8 +202,8 @@ const editProduct = asyncHandler(async (req, res) => {
             sellingPrice,
             descriptionPoints: descriptionPoints || foundProduct?.descriptionPoints,
             keyInformation: keyInformation || foundProduct?.keyInformation,
-            basePrice: basePrice || foundProduct?.basePrice, 
-            regularPrice: regularPrice || foundProduct?.regularPrice,
+            basePrice: basePrice || foundProduct?.basePrice || 0, 
+            regularPrice: regularPrice || foundProduct?.regularPrice || 0,
             category: categoryId,
             images: images ? images : foundProduct?.images
         },
