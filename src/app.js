@@ -33,6 +33,7 @@ import orderRouter from './routes/order.routes.js'
 import queryRouter from './routes/query.routes.js'
 import reportRouter from './routes/report.routes.js'
 import notificationRouter from './routes/notification.routes.js'
+import policyRouter from './routes/policy.routes.js'
 import { startAbandonedCartScheduler } from './scheduler/abandonedCart.scheduler.js';
 
 //routes declaration
@@ -47,6 +48,7 @@ app.use("/api/v1/orders", orderRouter)
 app.use("/api/v1/queries", queryRouter)
 app.use("/api/v1/reports", reportRouter)
 app.use("/api/v1/notifications", notificationRouter)
+app.use("/api/v1/policy", policyRouter)
 
 app.get('/', (req, res) => {
     res.json({
