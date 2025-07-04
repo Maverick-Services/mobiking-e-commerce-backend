@@ -15,6 +15,15 @@ const sellingPriceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const productSchema = new mongoose.Schema({
+    product_id: {
+        type: Number,
+    },
+    sku: {
+        type: String,
+    },
+    hsn: {
+        type: String,
+    },
     name: {
         type: String,
         required: true,

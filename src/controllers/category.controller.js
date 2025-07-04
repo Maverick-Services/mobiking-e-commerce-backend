@@ -145,6 +145,7 @@ const createSubCategory = asyncHandler(async (req, res) => {
         minFreeDeliveryOrderAmount,
         categoryId,
         icon,
+        theme,
         upperBanner,
         lowerBanner,
         photos
@@ -196,6 +197,7 @@ const createSubCategory = asyncHandler(async (req, res) => {
         name, slug, active,
         sequenceNo: sequenceNo || 0, featured,
         icon,
+        theme,
         upperBanner: upperBanner ? upperBanner : "",
         lowerBanner: lowerBanner ? lowerBanner : "",
         photos: photos ? photos : [],
@@ -236,6 +238,7 @@ const editSubCategory = asyncHandler(async (req, res) => {
         minFreeDeliveryOrderAmount,
         categoryId,
         icon,
+        theme,
         upperBanner,
         lowerBanner,
         photos
@@ -272,6 +275,7 @@ const editSubCategory = asyncHandler(async (req, res) => {
             minFreeDeliveryOrderAmount,
             parentCategory: categoryId,
             icon: icon ? icon : foundSubCategory?.icon,
+            theme: theme || foundSubCategory?.theme || "",
             upperBanner: upperBanner ? upperBanner : foundSubCategory?.upperBanner,
             lowerBanner: lowerBanner ? lowerBanner : foundSubCategory?.lowerBanner,
             photos: photos ? photos : foundSubCategory?.photos,

@@ -8,7 +8,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 const createGroup = asyncHandler(async (req, res) => {
     const {
         name, sequenceNo, active,
-        banner, isBannerVisble, isSpecial
+        banner, isBannerVisble, isSpecial,
+        backgroundColor, isBackgroundColorVisible
     } = req.body;
 
     //Validate details
@@ -22,6 +23,7 @@ const createGroup = asyncHandler(async (req, res) => {
     const newGroup = await Group.create({
         name, sequenceNo: sequenceNo || 0, active,
         isBannerVisble, isSpecial,
+        backgroundColor, isBackgroundColorVisible,
         banner: banner ? banner : ""
     });
     if (!newGroup) {
@@ -37,7 +39,8 @@ const createGroup = asyncHandler(async (req, res) => {
 const editGroup = asyncHandler(async (req, res) => {
     const {
         name, sequenceNo, active,
-        banner, isBannerVisble, isSpecial
+        banner, isBannerVisble, isSpecial,
+        backgroundColor, isBackgroundColorVisible
     } = req.body;
 
     //Validate details
@@ -61,7 +64,9 @@ const editGroup = asyncHandler(async (req, res) => {
             active: active ? active : foundGroup?.active,
             isBannerVisble: isBannerVisble ? isBannerVisble : foundGroup?.isBannerVisble,
             isSpecial: isSpecial ? isSpecial : foundGroup?.isSpecial,
-            banner: banner ? banner : foundGroup?.banner
+            banner: banner ? banner : foundGroup?.banner,
+            backgroundColor: backgroundColor || foundGroup?.backgroundColor || "", 
+            isBackgroundColorVisible: isBackgroundColorVisible || foundGroup?.isBackgroundColorVisible || "",
         },
         { new: true }
     );

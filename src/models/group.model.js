@@ -24,6 +24,13 @@ const groupSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    backgroundColor: {
+        type: String
+    },
+    isBackgroundColorVisible: {
+        type: Boolean,
+        default: false
+    },
     isSpecial: {
         type: Boolean,
         default: false

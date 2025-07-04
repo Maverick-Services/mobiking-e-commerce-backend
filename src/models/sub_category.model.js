@@ -36,6 +36,11 @@ const subCatgeorySchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    theme: {
+        type: String,
+        enum: ["light", "dark"],
+        default: "light"
+    },
     featured: {
         type: Boolean,
         default: false
