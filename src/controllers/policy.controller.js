@@ -11,10 +11,10 @@ export const createPolicy = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
-  const exists = await Policy.findOne({ slug });
-  if (exists) {
-    throw new ApiError(409, "Policy with this slug already exists");
-  }
+//   const exists = await Policy.findOne({ slug });
+//   if (exists) {
+//     throw new ApiError(409, "Policy with this slug already exists");
+//   }
 
   const newPolicy = await Policy.create({ policyName, slug: slug || "", heading, content, lastUpdated: lastUpdated || null });
 
