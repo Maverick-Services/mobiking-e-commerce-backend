@@ -80,17 +80,17 @@ const editHomeLayout = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Home Layout Id not found");
     }
 
-    if (
-        groups && !groups?.length
-    ) {
-        throw new ApiError(400, "No groups sent");
-    }
+    // if (
+    //     groups && !groups?.length
+    // ) {
+    //     throw new ApiError(400, "No groups sent");
+    // }
 
-    if (
-        categories && !categories?.length
-    ) {
-        throw new ApiError(400, "No categories sent");
-    }
+    // if (
+    //     categories && !categories?.length
+    // ) {
+    //     throw new ApiError(400, "No categories sent");
+    // }
 
     // if (
     //     !categories && !categories?.length
@@ -111,8 +111,8 @@ const editHomeLayout = asyncHandler(async (req, res) => {
         {
             active: active ? active : foundHomeLayout?.active,
             banners: banners ? banners : foundHomeLayout?.banners,
-            groups: groups ? groups : foundHomeLayout?.groups,
-            categories: categories ? categories : foundHomeLayout?.categories
+            groups: groups || foundHomeLayout?.groups || [],
+            categories: categories || foundHomeLayout?.categories || []
         },
         { new: true }
     )
