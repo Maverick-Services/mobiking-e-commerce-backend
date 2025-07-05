@@ -26,21 +26,21 @@ const productSchema = new mongoose.Schema({
     },
     name: {
         type: String,
-        required: true,
+        // required: true,
     },
     fullName: {
         type: String,
-        required: true,
+        // required: true,
     },
     slug: {
         type: String,
         lowercase: true,
-        required: true,
+        // required: true,
         unique: [true, 'Slug must be unique']
     },
     description: {
         type: String,
-        required: true,
+        // required: true,
     },
     descriptionPoints: {
         type: [String],
