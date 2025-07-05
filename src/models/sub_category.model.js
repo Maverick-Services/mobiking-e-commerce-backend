@@ -47,12 +47,15 @@ const subCatgeorySchema = new mongoose.Schema({
     },
     deliveryCharge: {
         type: Number,
+        default: 0
     },
     minOrderAmount: {
         type: Number,
+        default: 0
     },
     minFreeDeliveryOrderAmount: {
         type: Number,
+        default: 0
     },
     photos: [{
         type: String,
