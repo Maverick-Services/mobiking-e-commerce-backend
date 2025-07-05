@@ -632,6 +632,7 @@ const removeItemQuantityInOrder = async (req, res) => {
             const categoryCharges = new Map();
 
             for (const item of order.items) {
+                console.log("inside items: ", item);
                 const p = await Product.findOne({ _id: item.productId })
                     .session(session)
                     .populate("category")
@@ -651,7 +652,8 @@ const removeItemQuantityInOrder = async (req, res) => {
                 }
             }
 
-            const totalDeliveryCharge = Math.max(...Array.from(categoryCharges.values()));
+            const totalDeliveryCharge = categoryCharges && categoryCharges?.length
+                ? Math.max(...Array.from(categoryCharges.values())) : 0;
             //   const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
             //     (acc, charge) => acc + charge,
             //     0
