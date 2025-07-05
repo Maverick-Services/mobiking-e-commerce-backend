@@ -116,7 +116,8 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parsedLimit)
-      .populate("category", "name slug")
+      // .populate("category", "name slug")
+      .populate("orders stock groups category")
       .lean(),
 
     Product.countDocuments(filter),
