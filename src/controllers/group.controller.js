@@ -14,7 +14,7 @@ const createGroup = asyncHandler(async (req, res) => {
 
     //Validate details
     if (
-        !name || !req?.params?._id
+        !name
     ) {
         throw new ApiError(400, "Details not found");
     }
@@ -65,7 +65,7 @@ const editGroup = asyncHandler(async (req, res) => {
             isBannerVisble: isBannerVisble ? isBannerVisble : foundGroup?.isBannerVisble,
             isSpecial: isSpecial ? isSpecial : foundGroup?.isSpecial,
             banner: banner ? banner : foundGroup?.banner,
-            backgroundColor: backgroundColor || foundGroup?.backgroundColor || "", 
+            backgroundColor: backgroundColor || foundGroup?.backgroundColor || "",
             isBackgroundColorVisible: isBackgroundColorVisible || foundGroup?.isBackgroundColorVisible || "",
         },
         { new: true }
