@@ -14,7 +14,7 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
   const queryParameter = req?.query?.queryParameter;
 
   const page = Math.max(1, parseInt(req?.query?.page) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req?.query?.limit) || 30));
+  const limit = Math.min(100, Math.max(1, parseInt(req?.query?.limit) || 10));
   const skip = (page - 1) * limit;
 
   const filter = {};
@@ -89,12 +89,13 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
 export const getPaginatedProducts = asyncHandler(async (req, res) => {
   const {
     page = 1,
-    limit = 20,
+    limit = 10,
     active,
     category,
     startDate,
     endDate,
   } = req.query;
+  const searchQuery = req?.query?.searchQuery?.trim();
 
   const parsedPage = Math.max(1, parseInt(page));
   const parsedLimit = Math.min(100, Math.max(1, parseInt(limit)));
@@ -118,6 +119,14 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
       $gte: new Date(startDate),
       $lte: new Date(endDate),
     };
+  }
+
+  if (searchQuery) {
+    const regex = new RegExp(searchQuery);
+    filter.$or = [
+      { name: regex },
+      { fullName: regex },
+    ];
   }
 
   const [products, totalCount] = await Promise.all([
@@ -154,7 +163,7 @@ export const getPaginatedUsers = asyncHandler(async (req, res) => {
   const searchQuery = req?.query?.searchQuery?.trim();
 
   const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 30));
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
   const skip = (page - 1) * limit;
 
   const filter = {};
@@ -171,7 +180,7 @@ export const getPaginatedUsers = asyncHandler(async (req, res) => {
   }
 
   if (searchQuery) {
-    const regex = new RegExp(searchQuery);
+    const regex = new RegExp("^" + searchQuery, "i");
     filter.$or = [
       { name: regex },
       { email: regex },
