@@ -22,7 +22,7 @@ router.route("/group/:groupId").get(getProductsByGroup);
 router.route("/:_id").get(verifyJWT, getProductById);
 router.route("/details/:slug").get(getProductBySlug);
 //Paginated Products
-router.route("/all/paginated").get(verifyJWT, getPaginatedProducts);
+router.route("/all/paginated").get(getPaginatedProducts);
 router.route("/all/search").get(searchProducts);
 
 //Stock Routes
