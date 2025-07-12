@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { Order } from "../models/order.model.js";
 import { Product } from "../models/product.model.js";
 import { User } from "../models/user.model.js";
+import { Query } from "../models/query.model.js";
 
 export const getPaginatedOrders = asyncHandler(async (req, res) => {
   const status = req?.query?.status;
@@ -43,7 +44,10 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     filter.orderId = new RegExp("^" + searchQuery, "i");
   }
 
-  const [orders, totalCount] = await Promise.all([
+  const [
+    orders, totalCount,
+    newCount, acceptedCount, shippedCount, cancelledCount, deliveredCount
+  ] = await Promise.all([
     Order.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -67,6 +71,11 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
       })
       .lean(),
     Order.countDocuments(filter),
+    Order.countDocuments({ ...filter, status: "New" }),
+    Order.countDocuments({ ...filter, status: "Accepted" }),
+    Order.countDocuments({ ...filter, status: "Shipped" }),
+    Order.countDocuments({ ...filter, status: "Canelled" }),
+    Order.countDocuments({ ...filter, status: "Delivered" }),
   ]);
 
   const totalPages = Math.ceil(totalCount / limit);
@@ -75,6 +84,9 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     new ApiResponse(200, {
       orders,
       totalCount,
+      newCount, acceptedCount,
+      shippedCount, cancelledCount,
+      deliveredCount,
       pagination: {
         page,
         limit,
@@ -215,3 +227,66 @@ export const getPaginatedUsers = asyncHandler(async (req, res) => {
   );
 });
 
+export const getPaginatedQueries = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    isResolved,
+    startDate,
+    endDate,
+  } = req.query;
+  const searchQuery = req?.query?.searchQuery?.trim();
+
+  const parsedPage = Math.max(1, parseInt(page));
+  const parsedLimit = Math.min(100, Math.max(1, parseInt(limit)));
+  const skip = (parsedPage - 1) * parsedLimit;
+
+  const filter = {};
+
+  // Filter by active
+  if (isResolved !== undefined) {
+    filter.active = active === "true";
+  }
+
+  // Filter by date range
+  if (startDate && endDate) {
+    filter.createdAt = {
+      $gte: new Date(startDate),
+      $lte: new Date(endDate),
+    };
+  }
+
+  if (searchQuery) {
+    const regex = new RegExp(searchQuery);
+    filter.$or = [
+      { title: regex },
+      { desciption: regex },
+    ];
+  }
+
+  const [queries, totalCount] = await Promise.all([
+    Query.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parsedLimit)
+      .lean(),
+
+    Query.countDocuments(filter),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / parsedLimit);
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      queries,
+      totalCount,
+      pagination: {
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages,
+        hasNextPage: parsedPage < totalPages,
+        hasPrevPage: parsedPage > 1,
+      },
+    }, "Queries fetched successfully")
+  );
+});

@@ -9,6 +9,7 @@ import {
     getQueriesForLoggedInUser,
     raiseQueryByUser
 } from "../controllers/query.controller.js";
+import { getPaginatedQueries } from "../controllers/pagination.controller.js";
 
 const router = Router()
 
@@ -20,5 +21,6 @@ router.route("/close").post(verifyJWT, closeQuery);
 router.route("/rate").post(verifyJWT, addRatingToQuery);
 router.route("/").get(verifyJWT, getQueries);
 router.route("/my").get(verifyJWT, getQueriesForLoggedInUser);
+router.route("/all/paginated").get(verifyJWT, getPaginatedQueries);
 
 export default router
