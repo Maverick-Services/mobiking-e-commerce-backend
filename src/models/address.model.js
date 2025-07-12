@@ -15,6 +15,9 @@ const addressSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    street2: {
+        type: String,
+    },
     city: {
         type: String,
         required: true,
@@ -22,6 +25,11 @@ const addressSchema = new mongoose.Schema({
     state: {
         type: String,
         required: true,
+    },
+    country: {
+        type: String,
+        required: true,
+        default: "India"
     },
     pinCode: {
         type: String,

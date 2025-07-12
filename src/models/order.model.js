@@ -170,9 +170,18 @@ const orderSchema = new mongoose.Schema(
 
         /************** Product/Itesm Details *******************/
         items: [itemsSchema],
-        length: Number,
-        breadth: Number,
-        height: Number,
+        length: {
+            type: Number,
+            default: 10
+        },
+        breadth: {
+            type: Number,
+            default: 10
+        },
+        height: {
+            type: Number,
+            default: 10
+        },
         weight: {
             type: Number,
             default: 0.5

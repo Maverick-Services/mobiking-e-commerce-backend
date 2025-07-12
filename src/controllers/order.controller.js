@@ -11,6 +11,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { checkPickupStatus } from './shiprocket.controller.js';
+import { Address } from '../models/address.model.js';
 
 const razorpayConfig = () => {
     const razorpay = new Razorpay({
@@ -194,10 +195,21 @@ const createCodOrder = asyncHandler(async (req, res) => {
         //     productPopulated: it.productId?._id
         // })));
 
+        const foundAddress = await Address.findById(addressId);
+
+        const addressDetails = {
+            address: foundAddress?.street,
+            address2: foundAddress?.street2,
+            city: foundAddress?.city,
+            state: foundAddress?.state,
+            country: foundAddress?.country,
+            pincode: foundAddress?.pinCode
+        }
         const newOrderDoc = new Order({
+            ...addressDetails,
             userId,
             name, email, phoneNo,
-            address,
+            // address,
             addressId,
             method,
             type: 'Regular',
@@ -353,11 +365,23 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             payment_capture: 1
         });
 
+        const foundAddress = await Address.findById(addressId);
+
+        const addressDetails = {
+            address: foundAddress?.street,
+            address2: foundAddress?.street2,
+            city: foundAddress?.city,
+            state: foundAddress?.state,
+            country: foundAddress?.country,
+            pincode: foundAddress?.pinCode
+        }
+
         // 2️⃣ Create Order in DB (status: Created)
         const newOrder = new Order({
+            ...addressDetails,
             userId,
             name, email, phoneNo,
-            address,
+            // address,
             addressId,
             method: 'Online',
             type: 'Regular',
@@ -886,7 +910,7 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
             billing_customer_name: foundOrder.name,
             billing_last_name: "",
             billing_address: foundOrder?.address || "Rohini Delhi",
-            billing_address: foundOrder?.address || "",
+            billing_address_2: foundOrder?.address2 || "",
             billing_city: foundOrder?.city || foundOrder.addressId?.city,
             billing_pincode: foundOrder?.pincode || foundOrder.addressId?.pinCode,
             billing_state: foundOrder?.state || foundOrder.addressId?.state,
