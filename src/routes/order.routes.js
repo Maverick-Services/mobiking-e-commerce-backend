@@ -22,7 +22,8 @@ import {
     updateOrder,
     addItemQuantityInOrder,
     removeItemQuantityInOrder,
-    getFilteredOrdersByDate
+    getFilteredOrdersByDate,
+    returnOrder
 } from "../controllers/order.controller.js";
 import {
     assignBestCourier,
@@ -88,6 +89,11 @@ router.route("/cancel").post(
     deliveredCancel
 )
 
+router.route('/return').post(
+    verifyJWT,
+    shiprocketAuth,
+    returnOrder
+)
 
 // Track order routes
 router.route('/webhook').post(

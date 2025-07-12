@@ -10,6 +10,8 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
   const type = req?.query?.type;
   const startDate = req?.query?.startDate;
   const endDate = req?.query?.endDate;
+  const searchQuery = req?.query?.searchQuery?.trim();
+  const queryParameter = req?.query?.queryParameter;
 
   const page = Math.max(1, parseInt(req?.query?.page) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req?.query?.limit) || 30));
@@ -17,21 +19,28 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
 
   const filter = {};
 
-  // Status and Type filtering
-  if (status && status !== "all") {
-    filter.status = status;
-  }
+  // Filter by status and type
+  if (status && status !== "all") filter.status = status;
+  if (type && type !== "all") filter.type = type;
 
-  if (type && type !== "all") {
-    filter.type = type;
-  }
-
-  // Date range filtering
+  // Filter by date range
   if (startDate && endDate) {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999); // Include the whole day
+    end.setHours(23, 59, 59, 999);
     filter.createdAt = { $gte: start, $lte: end };
+  }
+
+  // Filter by customer or order
+  if (searchQuery && queryParameter === "customer") {
+    const regex = new RegExp("^" + searchQuery, "i");
+    filter.$or = [
+      { name: regex },
+      { email: regex },
+      { phoneNo: regex }
+    ];
+  } else if (searchQuery && queryParameter === "order") {
+    filter.orderId = new RegExp("^" + searchQuery, "i");
   }
 
   const [orders, totalCount] = await Promise.all([

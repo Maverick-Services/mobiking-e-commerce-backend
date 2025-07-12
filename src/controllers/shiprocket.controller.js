@@ -375,15 +375,16 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
     if (!order) return res.status(200).json({ success: true, unknown: true });
 
     /* 4) Always overwrite scans if provided ---------------------------------- */
-    if (Array.isArray(p.scans) && p.scans.length){
+    if (Array.isArray(p.scans) && p.scans.length) {
         await Order.findByIdAndUpdate(order._id, {
-            scans: p?.scans
+            scans: p?.scans,
+            shippingStatus: srStatus
         }, { new: true }).exec();
     };
 
     /* 1) Ignore everything before PICKED UP ---------------------------------- */
     const postPickupStatuses = [
-        "PICKED UP", "SHIPPED", "IN TRANSIT", "OUT FOR DELIVERY", "DELIVERED",
+        "PICKED UP", "SHIPPED", "IN TRANSIT", "OUT FOR PICKUP", "DELIVERED",
         "CANCELLED",                      // late cancellation
         "RTO INITIATED", "RTO IN TRANSIT", "RTO", "RTO DELIVERED"
     ];
@@ -420,7 +421,7 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
 
         case "SHIPPED":
         case "IN TRANSIT":
-        case "OUT FOR DELIVERY":
+        case "OUT FOR PICKUP":
             if (["NEW", "ACCEPTED"].includes(order.status.toUpperCase()))
                 upd.status = "Shipped";
             break;

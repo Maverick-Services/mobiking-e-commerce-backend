@@ -1492,6 +1492,108 @@ const deliveredCancel = async (req, res) => {
     return res.status(400).json({ message: 'Invalid cancellation stage' });
 };
 
+const returnOrder = asyncHandler(async (req, res) => {
+    const { orderId } = req?.body;
+
+    const order = await Order.findById(orderId).populate({
+        path: 'userId',
+        select: "-password -refreshToken"
+    })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: {
+                path: "category",  // This is the key part
+                model: "SubCategory"
+            }
+        })
+        .populate('addressId')
+        .exec();
+
+    if (!order) {
+        throw new ApiError(404, 'Order not found');
+    }
+
+    if ((order?.status == 'Delivered' ? false : order?.status == 'New' ? false : true)) {
+        throw new ApiError(403, 'Only delivered or new orders can be returned');
+    }
+
+    if (!order?.shiprocketOrderId) {
+        order.status = "Returned";
+        order.save();
+        await adjustStock(order);
+        return res.status(200).json(
+            new ApiResponse(200, { order }, "Order returned successfully")
+        );
+    }
+
+    const response = await axios.get(
+        `https://apiv2.shiprocket.in/v1/external/orders/show/${order?.shiprocketOrderId}`,
+        { headers: { Authorization: `Bearer ${req?.shiprocketToken}` } }
+    );
+
+    const orderData = response?.data?.data;
+    if (!orderData) {
+        throw new ApiError(404, "Order not found");
+    }
+
+    const order_items = orderData?.other?.order_items?.map(it => (
+        {
+            ...it,
+            qc_enable: false
+        }
+    ))
+
+    const payload = {
+        order_id: shiprocketOrderId,
+        order_date: orderData?.order_date,
+        channel_id: orderData?.channel_id,
+        pickup_customer_name: orderData?.customer_name,
+        pickup_email: orderData?.customer_email,
+        pickup_phone: orderData?.customer_phone,
+        pickup_address: orderData?.customer_address,
+        pickup_address_2: orderData?.customer_address_2,
+        pickup_city: orderData?.customer_city,
+        pickup_state: orderData?.customer_state,
+        pickup_country: orderData?.customer_country,
+        pickup_pincode: orderData?.pickup_code,
+        shipping_customer_name: orderData?.pickup_address?.name,
+        shipping_address: orderData?.pickup_address?.address,
+        shipping_address_2: orderData?.pickup_address?.address_2,
+        shipping_city: orderData?.pickup_address?.city,
+        shipping_country: orderData?.pickup_address?.country,
+        shipping_pincode: orderData?.pickup_address?.pin_code,
+        shipping_state: orderData?.pickup_address?.state,
+        shipping_email: orderData?.pickup_address?.email,
+        shipping_phone: orderData?.pickup_address?.phone,
+        order_items: order_items,
+        payment_method: orderData?.payment_method,
+        sub_total: orderData?.net_total,
+        weight: orderData?.shipments?.weight,
+        length: orderData?.shipments?.length,
+        breadth: orderData?.shipments?.breadth,
+        height: orderData?.shipments?.height,
+        request_pickup: true
+    }
+
+    const { data } = await axios.post('https://apiv2.shiprocket.in/v1/external/shipments/create/return-shipment', payload, {
+        headers: {
+            Authorization: `Bearer ${shiprocketToken}`
+        }
+    });
+
+    if (!data?.status) {
+        throw new ApiError(500, "Could not initiate return order");
+    }
+
+    order.returnData = data?.data;
+    await order.save();
+
+    return res.status(200).json(
+        new ApiResponse(200, { order }, "Return Order initiated with Shiprocket")
+    );
+})
+
 export {
     createPosOrder,
     createCodOrder,
@@ -1516,5 +1618,6 @@ export {
     awbCancel,
     postPickupCancel,
     inTransitCancel,
-    deliveredCancel
+    deliveredCancel,
+    returnOrder
 }
