@@ -23,7 +23,8 @@ import {
     addItemQuantityInOrder,
     removeItemQuantityInOrder,
     getFilteredOrdersByDate,
-    returnOrder
+    returnOrder,
+    getOrdersByRequestType
 } from "../controllers/order.controller.js";
 import {
     assignBestCourier,
@@ -51,6 +52,7 @@ router.route("/custom").get(verifyJWT, getOrdersByDate);
 router.route("/").get(verifyJWT, getAllOrders);
 //Paginated Orders
 router.route("/paginated").get(verifyJWT, getPaginatedOrders);
+router.route("/request").get(verifyJWT, getOrdersByRequestType);
 
 //Admin Order Routes
 router.route("/hold").post(verifyJWT, holdAbandonedOrder);

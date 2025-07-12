@@ -1002,6 +1002,78 @@ const holdAbandonedOrder = asyncHandler(async (req, res, next) => {
 //                 REJECT ORDER CONTROLLERS
 // ******************************************************
 
+const getOrdersByRequestType = asyncHandler(async (req, res) => {
+    const requestType = req?.query?.requestType;
+    const startDate = req?.query?.startDate;
+    const endDate = req?.query?.endDate;
+
+    const page = Math.max(1, parseInt(req?.query?.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req?.query?.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    if (!requestType || !["Cancel", "Return", "Warranty"].includes(requestType)) {
+        throw new ApiError(400, "Invalid or missing requestType");
+    }
+
+    const filter = {
+        requests: {
+            $elemMatch: {
+                type: requestType
+            }
+        }
+    };
+
+    // Optional date filter
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt = { $gte: start, $lte: end };
+    }
+
+    const [orders, totalCount] = await Promise.all([
+        Order.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate({
+                path: 'userId',
+                model: "User",
+                select: "-password -refreshToken",
+                populate: {
+                    path: "orders",
+                    model: "Order"
+                }
+            })
+            .populate({
+                path: "items.productId",
+                model: "Product",
+                populate: {
+                    path: "category",
+                    model: "SubCategory"
+                }
+            })
+            .lean(),
+        Order.countDocuments(filter)
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return res.status(200).json(
+        new ApiResponse(200, {
+            orders,
+            totalCount,
+            pagination: {
+                page,
+                limit,
+                totalPages,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1
+            }
+        }, "Orders filtered by request type")
+    );
+});
+
 const rejectAllRequest = (requests, reason) => {
     const updatedRequests = requests?.map((r) => {
         r.isResolved = true;
@@ -1634,6 +1706,7 @@ export {
     createAbandonedOrderFromCart,
     holdAbandonedOrder,
     acceptOrder,
+    getOrdersByRequestType,
     preShiprocketReject,
     createdReject,
     awbReject,
