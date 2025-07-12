@@ -151,6 +151,7 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
 
 export const getPaginatedUsers = asyncHandler(async (req, res) => {
   const { role, startDate, endDate } = req.query;
+  const searchQuery = req?.query?.searchQuery?.trim();
 
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 30));
@@ -167,6 +168,15 @@ export const getPaginatedUsers = asyncHandler(async (req, res) => {
     const end = new Date(endDate);
     end.setUTCHours(23, 59, 59, 999); // Include full end day
     filter.createdAt = { $gte: start, $lte: end };
+  }
+
+  if (searchQuery) {
+    const regex = new RegExp(searchQuery);
+    filter.$or = [
+      { name: regex },
+      { email: regex },
+      { phoneNo: regex }
+    ];
   }
 
   const [users, totalCount] = await Promise.all([
