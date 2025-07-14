@@ -97,8 +97,8 @@ const loginUser = asyncHandler(async (req, res) => {
         } else {
             if (user?.role !== role) {
                 throw new ApiError(400, `Employee Account Registered with the phone number ${user?.phoneNo}`);
-            }else{
-                
+            } else {
+
             }
         }
 
@@ -161,6 +161,21 @@ const loginUser = asyncHandler(async (req, res) => {
             )
         )
 
+})
+
+const getUserPermissions = asyncHandler(async (req, res) => {
+    const user = req?.user;
+
+    const userData = {
+        id: user?._id,
+        role: user?.role,
+        permissions: user?.permissions || {}
+    }
+
+    return res.status(200)
+        .json(
+            new ApiResponse(200, userData, "Permissions fetched successfully")
+        );
 })
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -690,9 +705,9 @@ const placeCancelRequest = asyncHandler(async (req, res) => {
 
     /* --------------- 4. block if return requests placed already --------------- */
     const reutrnRaised = foundOrder.requests.some(
-        (r) => r?.type === "Return" 
+        (r) => r?.type === "Return"
         // ||
-            // (!r?.isResolved || (r?.isResolved && r?.status == "Rejected"))
+        // (!r?.isResolved || (r?.isResolved && r?.status == "Rejected"))
     );
     if (reutrnRaised) {
         throw new ApiError(
@@ -702,7 +717,7 @@ const placeCancelRequest = asyncHandler(async (req, res) => {
     }
 
     const warrantyRaised = foundOrder.requests.some(
-        (r) => r?.type === "Warranty" 
+        (r) => r?.type === "Warranty"
         // || !r?.isResolved
     );
     if (warrantyRaised) {
@@ -883,8 +898,8 @@ const placeReturnRequest = asyncHandler(async (req, res) => {
 
     // 5️⃣ Block if Cancel request already placed
     const cancelRaised = foundOrder.requests.some(
-        (r) => r?.type === "Cancel" && 
-        (!r?.isResolved || (r?.isResolved && r?.status !== "Rejected"))
+        (r) => r?.type === "Cancel" &&
+            (!r?.isResolved || (r?.isResolved && r?.status !== "Rejected"))
     );
     if (cancelRaised) {
         throw new ApiError(409, "A cancellation request is already pending for this order");
@@ -892,8 +907,8 @@ const placeReturnRequest = asyncHandler(async (req, res) => {
 
     // 6️⃣ Block if Warranty request already placed
     const warrantyRaised = foundOrder.requests.some(
-        (r) => r?.type === "Warranty" && 
-        (!r?.isResolved || (r?.isResolved && r?.status !== "Rejected"))
+        (r) => r?.type === "Warranty" &&
+            (!r?.isResolved || (r?.isResolved && r?.status !== "Rejected"))
     );
     if (warrantyRaised) {
         throw new ApiError(409, "A warranty request is already pending for this order");
@@ -1087,7 +1102,7 @@ const placeWarrantyRequest = asyncHandler(async (req, res) => {
     /* --------------------- 3. ensure the order is in valid state for return ---------------- */
     const warrantyStates = ["Delivered"]; // adjust as needed
     if (
-        !warrantyStates.includes(foundOrder.status) 
+        !warrantyStates.includes(foundOrder.status)
         // || !warrantyStates.includes(foundOrder?.shippingStatus)
     ) {
         throw new ApiError(
@@ -1202,6 +1217,7 @@ const rejectWarrantyRequest = asyncHandler(async (req, res) => {
 
 export {
     loginUser,
+    getUserPermissions,
     logoutUser,
     refreshAccessToken,
     createCustomer,

@@ -5,6 +5,7 @@ import {
     deleteEmployee,
     editEmployee,
     getUserById,
+    getUserPermissions,
     getUsersByRole,
     loginUser,
     logoutUser,
@@ -31,6 +32,7 @@ import { getPaginatedUsers } from "../controllers/pagination.controller.js";
 
 const router = Router()
 
+router.route("/permissions").get(verifyJWT, getUserPermissions);
 router.route("/profile/update").post(verifyJWT, updateCustomer);
 router.route("/createCustomer").post(verifyJWT, createCustomer);
 router.route("/createUser").post(verifyJWT, createEmployee);
