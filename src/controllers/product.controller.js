@@ -58,7 +58,7 @@ const createProduct = asyncHandler(async (req, res) => {
         images: images ? images : [],
         keyInformation,
         descriptionPoints,
-        basePrice: basePrice || 0, 
+        basePrice: basePrice || 0,
         regularPrice: regularPrice || 0
     });
     if (!newProduct) {
@@ -83,6 +83,77 @@ const createProduct = asyncHandler(async (req, res) => {
     )
 });
 
+// const updateProductStock = asyncHandler(async (req, res) => {
+//     const {
+//         vendor,
+//         variantName,
+//         purchasePrice,
+//         quantity,
+//         productId
+//     } = req.body;
+
+//     // Validate input
+//     if (
+//         !vendor ||
+//         !variantName ||
+//         !purchasePrice ||
+//         !quantity ||
+//         !productId
+//     ) {
+//         throw new ApiError(400, "Details not found");
+//     }
+
+//     const parsedQuantity = parseInt(quantity);
+//     if (isNaN(parsedQuantity) || parsedQuantity < 0) {
+//         throw new ApiError(400, "Quantity must be a valid number");
+//     }
+
+//     // Check if product exists
+//     const existingProduct = await Product.findById(productId)
+//         .populate("category stock").exec(); //populate order, group here
+
+//     if (!existingProduct) {
+//         throw new ApiError(409, "Product not found");
+//     }
+
+//     // Create new stock entry
+//     const newProductStock = await Stock.create({
+//         vendor,
+//         variantName,
+//         purchasePrice,
+//         quantity,
+//         productId
+//     });
+
+//     if (!newProductStock) {
+//         throw new ApiError(409, "Could not create stock");
+//     }
+
+//     // Update totalStock and variant quantity
+//     const currentVariantQty = existingProduct.variants.get(variantName) || 0;
+//     const updatedVariantQty = currentVariantQty + parsedQuantity;
+//     const updatedTotalStock = existingProduct.totalStock + parsedQuantity;
+
+
+//     existingProduct.totalStock = updatedTotalStock;
+//     existingProduct.variants.set(variantName, updatedVariantQty);
+//     existingProduct.stock.push(newProductStock._id);
+
+//     const updatedProduct = await Product.findByIdAndUpdate(
+//         existingProduct?._id,
+//         {
+//             totalStock: existingProduct.totalStock,
+//             variants: existingProduct.variants,
+//             stock: existingProduct.stock
+//         },
+//         { new: true }
+//     ).populate("category stock groups").exec(); //populate orders
+
+//     return res.status(201).json(
+//         new ApiResponse(201, updatedProduct, "Product stock updated successfully")
+//     );
+// });
+
 const updateProductStock = asyncHandler(async (req, res) => {
     const {
         vendor,
@@ -92,62 +163,64 @@ const updateProductStock = asyncHandler(async (req, res) => {
         productId
     } = req.body;
 
-    // Validate input
-    if (
-        !vendor ||
-        !variantName ||
-        !purchasePrice ||
-        !quantity ||
-        !productId
-    ) {
-        throw new ApiError(400, "Details not found");
+    if (!vendor || !variantName || !purchasePrice || quantity === undefined || !productId) {
+        throw new ApiError(400, "All stock details are required");
     }
 
     const parsedQuantity = parseInt(quantity);
-    if (isNaN(parsedQuantity) || parsedQuantity < 0) {
+    if (isNaN(parsedQuantity)) {
         throw new ApiError(400, "Quantity must be a valid number");
     }
 
-    // Check if product exists
+    // Fetch product
     const existingProduct = await Product.findById(productId)
-        .populate("category stock").exec(); //populate order, group here
+        .populate("category stock")
+        .exec();
 
     if (!existingProduct) {
         throw new ApiError(409, "Product not found");
     }
 
-    // Create new stock entry
+    const currentVariantQty = existingProduct.variants.get(variantName) || 0;
+    const currentTotalStock = existingProduct.totalStock || 0;
+
+    const updatedVariantQty = currentVariantQty + parsedQuantity;
+    const updatedTotalStock = currentTotalStock + parsedQuantity;
+
+    // Prevent going below zero
+    if (updatedVariantQty < 0 || updatedTotalStock < 0) {
+        throw new ApiError(400, "Insufficient stock for this operation");
+    }
+
+    // Create stock entry (even for deduction)
     const newProductStock = await Stock.create({
         vendor,
         variantName,
         purchasePrice,
-        quantity,
+        quantity: parsedQuantity,
         productId
     });
 
     if (!newProductStock) {
-        throw new ApiError(409, "Could not create stock");
+        throw new ApiError(500, "Could not create stock entry");
     }
 
-    // Update totalStock and variant quantity
-    const currentVariantQty = existingProduct.variants.get(variantName) || 0;
-    const updatedVariantQty = currentVariantQty + parsedQuantity;
-    const updatedTotalStock = existingProduct.totalStock + parsedQuantity;
-
-
+    // Update product
     existingProduct.totalStock = updatedTotalStock;
     existingProduct.variants.set(variantName, updatedVariantQty);
     existingProduct.stock.push(newProductStock._id);
 
     const updatedProduct = await Product.findByIdAndUpdate(
-        existingProduct?._id,
+        existingProduct._id,
         {
-            totalStock: existingProduct.totalStock,
+            totalStock: updatedTotalStock,
             variants: existingProduct.variants,
             stock: existingProduct.stock
         },
         { new: true }
-    ).populate("category stock groups").exec(); //populate orders
+    )
+        .populate("category stock groups")
+        .exec();
 
     return res.status(201).json(
         new ApiResponse(201, updatedProduct, "Product stock updated successfully")
@@ -203,7 +276,7 @@ const editProduct = asyncHandler(async (req, res) => {
             sellingPrice,
             descriptionPoints: descriptionPoints || foundProduct?.descriptionPoints,
             keyInformation: keyInformation || foundProduct?.keyInformation,
-            basePrice: basePrice || foundProduct?.basePrice || 0, 
+            basePrice: basePrice || foundProduct?.basePrice || 0,
             regularPrice: regularPrice || foundProduct?.regularPrice || 0,
             category: categoryId,
             images: images ? images : foundProduct?.images
