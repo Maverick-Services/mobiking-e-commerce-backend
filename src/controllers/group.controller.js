@@ -9,7 +9,8 @@ const createGroup = asyncHandler(async (req, res) => {
     const {
         name, sequenceNo, active,
         banner, isBannerVisble, isSpecial,
-        backgroundColor, isBackgroundColorVisible
+        backgroundColor, isBackgroundColorVisible,
+        categories
     } = req.body;
 
     //Validate details
@@ -24,7 +25,8 @@ const createGroup = asyncHandler(async (req, res) => {
         name, sequenceNo: sequenceNo || 0, active,
         isBannerVisble, isSpecial,
         backgroundColor, isBackgroundColorVisible,
-        banner: banner ? banner : ""
+        banner: banner ? banner : "",
+        categories: categories ? categories : []
     });
     if (!newGroup) {
         throw new ApiError(500, "Could not create group");
@@ -40,7 +42,8 @@ const editGroup = asyncHandler(async (req, res) => {
     const {
         name, sequenceNo, active,
         banner, isBannerVisble, isSpecial,
-        backgroundColor, isBackgroundColorVisible
+        backgroundColor, isBackgroundColorVisible,
+        categories
     } = req.body;
 
     //Validate details
@@ -65,6 +68,7 @@ const editGroup = asyncHandler(async (req, res) => {
             isBannerVisble: isBannerVisble != undefined ? isBannerVisble : foundGroup?.isBannerVisble,
             isSpecial: isSpecial != undefined ? isSpecial : foundGroup?.isSpecial,
             banner: banner ? banner : foundGroup?.banner,
+            categories: categories ? categories : foundGroup?.categories,
             backgroundColor: backgroundColor || foundGroup?.backgroundColor || "",
             isBackgroundColorVisible: isBackgroundColorVisible != undefined ? isBackgroundColorVisible : foundGroup?.isBackgroundColorVisible,
         },
@@ -301,6 +305,27 @@ const getSpecialGroups = asyncHandler(async (req, res) => {
     )
 });
 
+const getGroupsByCategories = asyncHandler(async (req, res) => {
+
+    const { category } = req?.params;
+    if (!category) {
+        throw new ApiError("Category Id not found");
+    }
+
+    const allGroups = await Group.find({
+        categories: { $in: category }
+    }
+    ).populate("products").exec();
+
+    if (!allGroups) {
+        throw new ApiError(409, "Could not find groups");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allGroups, "Groups fetched Successfully")
+    )
+});
+
 export {
     createGroup,
     editGroup,
@@ -308,5 +333,6 @@ export {
     removeProductFromGroup,
     syncGroupProducts,
     getAllGroups,
-    getSpecialGroups
+    getSpecialGroups,
+    getGroupsByCategories
 }

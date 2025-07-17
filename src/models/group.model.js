@@ -39,6 +39,10 @@ const groupSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product',
         required: true
+    }],
+    categories: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SubCategory'
     }]
 }, { timestamps: true });
 
