@@ -61,12 +61,12 @@ const editGroup = asyncHandler(async (req, res) => {
         {
             name: name || foundGroup?.name,
             sequenceNo: sequenceNo ? sequenceNo : foundGroup?.sequenceNo || 0,
-            active: active ? active : foundGroup?.active,
-            isBannerVisble: isBannerVisble ? isBannerVisble : foundGroup?.isBannerVisble,
-            isSpecial: isSpecial ? isSpecial : foundGroup?.isSpecial,
+            active: active != undefined ? active : foundGroup?.active,
+            isBannerVisble: isBannerVisble != undefined ? isBannerVisble : foundGroup?.isBannerVisble,
+            isSpecial: isSpecial != undefined ? isSpecial : foundGroup?.isSpecial,
             banner: banner ? banner : foundGroup?.banner,
             backgroundColor: backgroundColor || foundGroup?.backgroundColor || "",
-            isBackgroundColorVisible: isBackgroundColorVisible || foundGroup?.isBackgroundColorVisible || "",
+            isBackgroundColorVisible: isBackgroundColorVisible != undefined || foundGroup?.isBackgroundColorVisible || "",
         },
         { new: true }
     );
