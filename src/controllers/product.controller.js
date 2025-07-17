@@ -242,10 +242,10 @@ const editProduct = asyncHandler(async (req, res) => {
 
     //Validations
     if (
-        !_id ||
-        !slug ||
-        !name || !fullName || !description ||
-        price == undefined || price == null || !categoryId
+        !_id
+        // || !slug ||
+        // !name || !fullName || !description ||
+        // price == undefined || price == null || !categoryId
     ) {
         throw new ApiError(400, "Details not found");
     }
