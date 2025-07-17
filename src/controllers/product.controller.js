@@ -272,7 +272,8 @@ const editProduct = asyncHandler(async (req, res) => {
         { _id },
         {
             name, fullName, description,
-            slug, active,
+            slug,
+            active: active != undefined ? active : foundProduct?.active,
             sellingPrice,
             descriptionPoints: descriptionPoints || foundProduct?.descriptionPoints,
             keyInformation: keyInformation || foundProduct?.keyInformation,
