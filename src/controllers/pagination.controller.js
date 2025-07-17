@@ -481,7 +481,7 @@ export const getPaginatedQueries = asyncHandler(async (req, res) => {
 
   // Filter by active
   if (isResolved !== undefined) {
-    filter.active = active === "true";
+    filter.isResolved = isResolved;
   }
 
   // Filter by date range
@@ -502,6 +502,16 @@ export const getPaginatedQueries = asyncHandler(async (req, res) => {
 
   const [queries, totalCount] = await Promise.all([
     Query.find(filter)
+      .populate("raisedBy", "name email phone role")
+      .populate("assignedTo", "name email phone role")
+      .populate("replies.messagedBy", "name email phone role")
+      .populate({
+        path: "orderId",
+        populate: {
+          path: "items.productId",
+          model: "Product"
+        }
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parsedLimit)
