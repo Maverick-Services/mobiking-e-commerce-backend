@@ -13,7 +13,8 @@ const createProduct = asyncHandler(async (req, res) => {
         slug, active, images,
         descriptionPoints,
         keyInformation,
-        basePrice, regularPrice
+        basePrice, regularPrice,
+        sku, hsn
     } = req.body;
 
     //TODO: Add Images to it
@@ -58,6 +59,7 @@ const createProduct = asyncHandler(async (req, res) => {
         images: images ? images : [],
         keyInformation,
         descriptionPoints,
+        sku, hsn,
         basePrice: basePrice || 0,
         regularPrice: regularPrice || 0
     });
@@ -235,7 +237,8 @@ const editProduct = asyncHandler(async (req, res) => {
         slug, active,
         descriptionPoints,
         keyInformation, images,
-        basePrice, regularPrice
+        basePrice, regularPrice,
+        hsn, sku
     } = req.body;
 
     //TODO: Add Images to it
@@ -273,6 +276,7 @@ const editProduct = asyncHandler(async (req, res) => {
         {
             name, fullName, description,
             slug,
+            hsn, sku,
             active: active != undefined ? active : foundProduct?.active,
             sellingPrice,
             descriptionPoints: descriptionPoints || foundProduct?.descriptionPoints,
