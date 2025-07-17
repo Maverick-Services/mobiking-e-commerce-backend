@@ -102,8 +102,10 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
   const {
     page = 1,
     limit = 10,
-    active,
+    filterBy,
     category,
+    group,
+    type,
     startDate,
     endDate,
   } = req.query;
@@ -116,13 +118,38 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
   const filter = {};
 
   // Filter by active
-  if (active !== undefined) {
-    filter.active = active === "true";
+  if (filterBy !== undefined) {
+    switch (filterBy) {
+      case "Active":
+        filter.active = true;
+        break;
+
+      case "Inactive":
+        filter.active = false;
+        break;
+
+      case "InStock":
+        filter.totalStock = { $gt: 0 }; // Changed from $gte: 1 for clarity
+        break;
+
+      case "OutOfStock":
+        filter.totalStock = { $lte: 0 };
+        break;
+
+      case "zero":
+        filter.totalStock = { $eq: 0 }; // More robust than just 0
+        break;
+    }
   }
 
   // Filter by category
   if (category) {
     filter.category = category;
+  }
+
+  // Filter by group
+  if (group) {
+    filter.groups = { $in: group };
   }
 
   // Filter by date range
@@ -139,6 +166,83 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
       { name: regex },
       { fullName: regex },
     ];
+  }
+
+  // TYPE: fast, slow, non
+  if (type) {
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    let productIds = [];
+
+    if (type === "fast") {
+      // Products ordered 2+ times in last 1 week
+      const fastProducts = await Order.aggregate([
+        { $match: { createdAt: { $gte: oneWeekAgo } } },
+        { $unwind: "$items" },
+        {
+          $group: {
+            _id: "$items.productId",
+            count: { $sum: 1 }
+          }
+        },
+        { $match: { count: { $gte: 2 } } },
+        { $project: { _id: 1 } }
+      ]);
+      productIds = fastProducts.map(p => p._id);
+
+    } else if (type === "slow") {
+      // Products ordered 1+ times in last 1 month, but 0 in last 1 week
+      const monthProducts = await Order.aggregate([
+        { $match: { createdAt: { $gte: oneMonthAgo } } },
+        { $unwind: "$items" },
+        {
+          $group: {
+            _id: "$items.productId",
+            count: { $sum: 1 }
+          }
+        }
+      ]);
+
+      const weekProducts = await Order.aggregate([
+        { $match: { createdAt: { $gte: oneWeekAgo } } },
+        { $unwind: "$items" },
+        {
+          $group: {
+            _id: "$items.productId"
+          }
+        }
+      ]);
+
+      const weekProductIds = new Set(weekProducts.map(p => String(p._id)));
+
+      productIds = monthProducts
+        .filter(p => !weekProductIds.has(String(p._id)))
+        .map(p => p._id);
+
+    } else if (type === "non") {
+      // Products not ordered in last 1 month
+      const recentProducts = await Order.aggregate([
+        { $match: { createdAt: { $gte: oneMonthAgo } } },
+        { $unwind: "$items" },
+        { $group: { _id: "$items.productId" } }
+      ]);
+
+      const recentProductIds = new Set(recentProducts.map(p => String(p._id)));
+
+      const allOrderedProducts = await Order.aggregate([
+        { $unwind: "$items" },
+        { $group: { _id: "$items.productId" } }
+      ]);
+
+      productIds = allOrderedProducts
+        .filter(p => !recentProductIds.has(String(p._id)))
+        .map(p => p._id);
+    }
+
+    // Apply product ID filter
+    filter._id = { $in: productIds };
   }
 
   const [products, totalCount] = await Promise.all([

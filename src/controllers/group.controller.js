@@ -66,7 +66,7 @@ const editGroup = asyncHandler(async (req, res) => {
             isSpecial: isSpecial != undefined ? isSpecial : foundGroup?.isSpecial,
             banner: banner ? banner : foundGroup?.banner,
             backgroundColor: backgroundColor || foundGroup?.backgroundColor || "",
-            isBackgroundColorVisible: isBackgroundColorVisible != undefined || foundGroup?.isBackgroundColorVisible || "",
+            isBackgroundColorVisible: isBackgroundColorVisible != undefined ? isBackgroundColorVisible : foundGroup?.isBackgroundColorVisible,
         },
         { new: true }
     );
