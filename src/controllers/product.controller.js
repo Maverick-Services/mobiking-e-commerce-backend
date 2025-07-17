@@ -326,6 +326,40 @@ const editProduct = asyncHandler(async (req, res) => {
     )
 });
 
+const updateProductStatus = asyncHandler(async (req, res) => {
+    const { _id } = req.params;
+    const {
+        active,
+    } = req.body;
+
+    //Validations
+    if (
+        !_id
+    ) {
+        throw new ApiError(400, "Details not found");
+    }
+
+    const foundProduct = await Product.findById(_id);
+    if (!foundProduct) {
+        throw new ApiError(409, `Product not found`);
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+        { _id },
+        {
+            active: active != undefined ? active : foundProduct?.active
+        },
+        { new: true }
+    ).populate("category stock groups").exec(); //populate order, group here
+    if (!updatedProduct) {
+        throw new ApiError(409, "Could not update product");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedProduct, "Product updated Successfully")
+    )
+});
+
 const getProductBySlug = asyncHandler(async (req, res) => {
     const completeProductDetails = await Product.findOne({
         slug: req.params.slug
@@ -362,6 +396,7 @@ export {
     createProduct,
     updateProductStock,
     editProduct,
+    updateProductStatus,
     markProductInGroup,
     deleteProduct,
     getAllProducts,

@@ -4,6 +4,7 @@ import {
     createProduct, deleteProduct, editProduct,
     getAllProducts, getProductById, getProductBySlug,
     getProductsByCategory, getProductsByGroup,
+    updateProductStatus,
     updateProductStock
 } from "../controllers/product.controller.js";
 import { upload } from "../middlewares/multer.middlewares.js";
@@ -14,6 +15,7 @@ const router = Router()
 
 //Product Routes
 router.route("/createProduct").post(verifyJWT, createProduct);
+router.route("/status/:_id").put(verifyJWT, updateProductStatus);
 router.route("/:_id").put(verifyJWT, editProduct);
 router.route("/:_id").delete(verifyJWT, deleteProduct);
 router.route("/").get(getAllProducts);
