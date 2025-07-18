@@ -851,6 +851,7 @@ const verifyPayment = async (req, res) => {
     }
 };
 
+//When order is accepted this will be called to create order in shiprocket, assign courier and mark it shipped
 const acceptOrder = asyncHandler(async (req, res, next) => {
     try {
         const { shiprocketToken } = req;
@@ -885,7 +886,10 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
         if (foundOrder && foundOrder?.abondonedOrder)
             return res.status(404).json({ message: `Order is Abandoned` });
 
-        if (foundOrder && foundOrder?.status != "New")
+        // if (foundOrder && foundOrder?.status != "New")
+        //     return res.status(404).json({ message: `Order is ${foundOrder?.status}` });
+
+        if (foundOrder && foundOrder?.status != "Accepted")
             return res.status(404).json({ message: `Order is ${foundOrder?.status}` });
 
         //Format the items name
@@ -895,6 +899,7 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
             return {
                 name: `${item.productId.fullName}${variant ? `\n , ${variant}` : ""}`, // Two-line name
                 sku: uuidv4().split('-')[0].toUpperCase() || item?.productId?._id,
+                hsn: item?.productId?.hsn || uuidv4().split('-')[0].toUpperCase(),
                 // sku: `${item.productId._id}-${variant.replace(/\s+/g, "_").toUpperCase()}`,
                 units: item.quantity,
                 selling_price: item.price,

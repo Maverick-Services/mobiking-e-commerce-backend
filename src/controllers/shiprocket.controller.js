@@ -78,8 +78,9 @@ const assignBestCourier = async (req, res, next) => {
                 awbCode,
                 courierName,
                 courierAssignedAt: new Date(),
-                status: 'Accepted',
-                shippingStatus: "Courier Assigned",
+                // status: 'Accepted',
+                status: 'Shipped',
+                shippingStatus: pickupInfo ? pickupInfo?.shippingStatus : "Courier Assigned",
             },
             { new: true }
         );
@@ -164,8 +165,8 @@ const schedulePickup = async (req, res, next) => {
                 pickupSlot: pickupSlot || null,
                 // status: 'Accepted',
                 shippingStatus: "Pickup Scheduled",
-                expectedDeliveryDate: trackData?.data?.tracking_data?.etd || null
-                // status: "Shipped",
+                expectedDeliveryDate: trackData?.data?.tracking_data?.etd || null,
+                status: "Shipped",
             },
             { new: true }
         ).populate({
@@ -363,7 +364,7 @@ const verifyShiprocketToken = (req, res, next) => {
 ------------------------------------------------------------------- */
 const shiprocketWebhook = asyncHandler(async (req, res) => {
     const p = req.body;
-    const srStatus = (p.current_status || p.shipment_status || "").toUpperCase();
+    const srStatus = (p.shipment_status || p.current_status || "").toUpperCase();
 
     /* 2) Locate order -------------------------------------------------------- */
     const order = await Order.findOne({
@@ -385,8 +386,8 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
     /* 1) Ignore everything before PICKED UP ---------------------------------- */
     const postPickupStatuses = [
         "PICKED UP", "SHIPPED", "IN TRANSIT", "OUT FOR PICKUP", "DELIVERED",
-        "CANCELLED",                      // late cancellation
-        "RTO INITIATED", "RTO IN TRANSIT", "RTO", "RTO DELIVERED"
+        "CANCELLED", "RETURN DELIVERED",                      // late cancellation
+        "RTO INITIATED", "RTO IN TRANSIT", "RTO", "RTO ACKNOWLEDGED"
     ];
     if (!postPickupStatuses.includes(srStatus))
         return res.status(200).json({ success: true, ignored: true });
@@ -414,7 +415,7 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
         case "PICKED UP":
             if (prevShip !== "PICKED UP") {
                 upd.pickupDate = nowISO;
-                if (["NEW", "ACCEPTED"].includes(order.status.toUpperCase()))
+                if (["NEW", "ACCEPTED", "SHIPPED"].includes(order.status.toUpperCase()))
                     upd.status = "Shipped";
             }
             break;
@@ -422,7 +423,7 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
         case "SHIPPED":
         case "IN TRANSIT":
         case "OUT FOR PICKUP":
-            if (["NEW", "ACCEPTED"].includes(order.status.toUpperCase()))
+            if (["NEW", "ACCEPTED", "SHIPPED"].includes(order.status.toUpperCase()))
                 upd.status = "Shipped";
             break;
 
@@ -443,14 +444,23 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
             break;
 
         /* RTO journey */
-        case "RTO":
+        // case "RTO":
+        // case "RTO IN TRANSIT":
         case "RTO INITIATED":
-        case "RTO IN TRANSIT":
             if (!order.rtoInitiatedAt) upd.rtoInitiatedAt = nowISO;
             if (order.status !== "Returned") upd.status = "Returned";
             break;
 
         case "RTO DELIVERED":
+            upd.rtoDeliveredAt = nowISO;
+            break;
+
+        case "RTO ACKNOWLEDGED":
+            upd.status = "Returned";
+            await restoreStock();
+            break;
+
+        case "RETURN DELIVERED":
             upd.rtoDeliveredAt = nowISO;
             upd.status = "Returned";
             await restoreStock();
