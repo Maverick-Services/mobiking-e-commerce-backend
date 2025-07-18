@@ -153,7 +153,7 @@ const createSubCategory = asyncHandler(async (req, res) => {
 
     //Todo: Add Images, upper, lower banner in the subcategories
 
-    if (!name || !slug || 
+    if (!name || !slug ||
         // !sequenceNo || 
         !categoryId) {
         throw new ApiError(400, "Details not found");
@@ -246,7 +246,7 @@ const editSubCategory = asyncHandler(async (req, res) => {
 
     //Todo: Add Images, upper, lower banner in the subcategories
 
-    if (!_id || !name || !slug || 
+    if (!_id || !name || !slug ||
         // !sequenceNo || 
         !categoryId) {
         throw new ApiError(400, "Details not found");
@@ -311,6 +311,40 @@ const editSubCategory = asyncHandler(async (req, res) => {
             { new: true }
         ).populate("subCategories").exec();
         console.log("New Parent Category: ", newCategory);
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedSubCategory, "Sub Category updated Successfully")
+    )
+});
+
+const updateSubCategoryStatus = asyncHandler(async (req, res) => {
+    const { _id } = req.params;
+    const {
+        active,
+    } = req.body;
+
+    //Todo: Add Images, upper, lower banner in the subcategories
+
+    if (!_id) {
+        throw new ApiError(400, "Details not found");
+    }
+
+    // Validate sub category Id
+    const foundSubCategory = await SubCategory.findById(_id);
+    if (!foundSubCategory) {
+        throw new ApiError(409, `Sub category not found`);
+    }
+
+    const updatedSubCategory = await SubCategory.findByIdAndUpdate(
+        { _id },
+        {
+            active: active != undefined ? active : foundSubCategory?.active
+        },
+        { new: true }
+    ).populate("parentCategory products").exec();
+    if (!updatedSubCategory) {
+        throw new ApiError(409, "Could not update sub category");
     }
 
     return res.status(200).json(
@@ -412,6 +446,7 @@ const getSubCategoryBySlug = asyncHandler(async (req, res) => {
 export {
     createCategory,
     editCategory,
+    updateSubCategoryStatus,
     deleteCategory,
     getAllCategories,
     getCategoryById,

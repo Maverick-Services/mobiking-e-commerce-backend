@@ -5,7 +5,8 @@ import {
     deleteSubCategory, editCategory, editSubCategory,
     getAllCategories, getAllFeaturedSubCategories, getAllSubCategories,
     getCategoryById, getCategoryBySlug,
-    getSubCategoryById, getSubCategoryBySlug
+    getSubCategoryById, getSubCategoryBySlug,
+    updateSubCategoryStatus
 } from "../controllers/category.controller.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 
@@ -13,6 +14,7 @@ const router = Router()
 
 //Category Routes
 router.route("/createCategory").post(verifyJWT, createCategory);
+router.route("/status/:_id").put(verifyJWT, updateSubCategoryStatus);
 router.route("/:_id").put(verifyJWT, editCategory);
 router.route("/:_id").delete(verifyJWT, deleteCategory);
 router.route("/").get(getAllCategories);
