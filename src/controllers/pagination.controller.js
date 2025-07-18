@@ -22,7 +22,25 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
 
   // Filter by status and type
   if (status && status !== "all") filter.status = status;
-  if (type && type !== "all") filter.type = type;
+  if (type && type !== "all") {
+    switch (type) {
+      case "pos":
+        filter.type = "POS"
+        break;
+
+      case "web":
+        filter.isAppOrder = false
+        break;
+
+      case "app":
+        filter.isAppOrder = true
+        break;
+
+      case "abandoned":
+        filter.abondonedOrder = true
+        break;
+    }
+  }
 
   // Filter by date range
   if (startDate && endDate) {
