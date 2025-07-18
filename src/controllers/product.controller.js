@@ -165,7 +165,7 @@ const updateProductStock = asyncHandler(async (req, res) => {
         productId
     } = req.body;
 
-    if (!vendor || !variantName || !purchasePrice || quantity === undefined || !productId) {
+    if (!variantName || quantity === undefined || !productId) {
         throw new ApiError(400, "All stock details are required");
     }
 
