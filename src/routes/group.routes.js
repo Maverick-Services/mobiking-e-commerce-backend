@@ -5,6 +5,7 @@ import {
     createGroup,
     editGroup,
     getAllGroups,
+    getGroupsByCategories,
     getSpecialGroups,
     removeProductFromGroup,
     syncGroupProducts
@@ -21,6 +22,6 @@ router.route("/removeProduct").post(verifyJWT, removeProductFromGroup);
 router.route("/updateProducts").post(verifyJWT, syncGroupProducts);
 router.route("/").get(getAllGroups);
 router.route("/special").get(getSpecialGroups);
-router.route("/category/:category").get(getSpecialGroups);
+router.route("/category/:category").get(getGroupsByCategories);
 
 export default router
