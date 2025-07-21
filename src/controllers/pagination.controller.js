@@ -52,14 +52,14 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
 
   // Filter by customer or order
   if (searchQuery && queryParameter === "customer") {
-    const regex = new RegExp(searchQuery);
+    const regex = new RegExp(searchQuery + "i");
     filter.$or = [
       { name: regex },
       { email: regex },
       { phoneNo: regex }
     ];
   } else if (searchQuery && queryParameter === "order") {
-    filter.orderId = new RegExp(searchQuery);
+    filter.orderId = new RegExp(searchQuery + "i");
   }
 
   const [
@@ -179,7 +179,7 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
   }
 
   if (searchQuery) {
-    const regex = new RegExp(searchQuery);
+    const regex = new RegExp(searchQuery + "i");
     filter.$or = [
       { name: regex },
       { fullName: regex },
@@ -511,7 +511,7 @@ export const getPaginatedQueries = asyncHandler(async (req, res) => {
   }
 
   if (searchQuery) {
-    const regex = new RegExp(searchQuery);
+    const regex = new RegExp(searchQuery + "i");
     filter.$or = [
       { title: regex },
       { desciption: regex },
