@@ -12,6 +12,7 @@ import { User } from "../models/user.model.js";
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { checkPickupStatus } from './shiprocket.controller.js';
 import { Address } from '../models/address.model.js';
+import { isNumber } from 'razorpay/dist/utils/razorpay-utils.js';
 
 const razorpayConfig = () => {
     const razorpay = new Razorpay({
@@ -205,7 +206,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
             country: foundAddress?.country,
             pincode: foundAddress?.pinCode
         }
-        const newOrderDoc = new Order({
+        let newOrderDoc = new Order({
             ...addressDetails,
             userId,
             name, email, phoneNo,
@@ -225,6 +226,47 @@ const createCodOrder = asyncHandler(async (req, res) => {
             subtotal,
             items: cart.items
         });
+
+        // Recalculate subtotal and deliveryCharge
+        let subtotal_amount = 0;
+        const categoryCharges = new Map();
+
+        for (const item of newOrderDoc.items) {
+            const prod = await Product.findOne({ _id: item.productId._id })
+                .populate("category")
+                .exec();
+
+            if (!prod || !prod.category) {
+                throw new ApiError(400, `Product or category missing for ${item.productId}`);
+            }
+
+            subtotal_amount += item.price * item.quantity;
+
+            const categoryId = prod.category._id.toString();
+            const deliveryCharge = prod.category.deliveryCharge || 0;
+
+            // console.log("charges", deliveryCharge);
+            // console.log("category", categoryId);
+            if (deliveryCharge > 0 && !categoryCharges.has(categoryId)) {
+                categoryCharges.set(categoryId, deliveryCharge);
+            }
+        }
+        let values = Array.from(categoryCharges.values());
+        let totalDeliveryCharge = Math.max(...values);
+
+        if (!isFinite(totalDeliveryCharge) || totalDeliveryCharge === undefined) {
+            totalDeliveryCharge = 0;
+        }
+
+        // console.log("delivery charge", totalDeliveryCharge);
+        // console.log("subtotal", subtotal_amount);
+
+        newOrderDoc.subtotal = subtotal_amount;
+        newOrderDoc.deliveryCharge = totalDeliveryCharge;
+        newOrderDoc.orderAmount = subtotal_amount - (newOrderDoc.discount || 0) + totalDeliveryCharge;
+        // console.log("order Amount", newOrderDoc.orderAmount);
+
+        newOrderDoc = await newOrderDoc.save();
 
         let updatedUser = null;
         await session.withTransaction(async () => {
@@ -399,7 +441,45 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             items: cart.items
         });
 
+        // Recalculate subtotal and deliveryCharge
+        let subtotal_amount = 0;
+        const categoryCharges = new Map();
+        // console.log("New Order 1:", newOrder);
+
+        for (const item of newOrder.items) {
+            // console.log("New Order 1:", item.productId);
+            const prod = await Product.findOne({ _id: item.productId._id })
+                .session(session)
+                .populate("category")
+                .exec();
+
+            if (!prod || !prod.category) {
+                throw new ApiError(400, `Product or category missing for ${item.productId._id}`);
+            }
+
+            subtotal_amount += item.price * item.quantity;
+
+            const categoryId = prod.category._id.toString();
+            const deliveryCharge = prod.category.deliveryCharge || 0;
+
+            if (deliveryCharge > 0 && !categoryCharges.has(categoryId)) {
+                categoryCharges.set(categoryId, deliveryCharge);
+            }
+        }
+
+        let values = Array.from(categoryCharges.values());
+        let totalDeliveryCharge = Math.max(...values);
+
+        if (!isFinite(totalDeliveryCharge) || totalDeliveryCharge === undefined) {
+            totalDeliveryCharge = 0;
+        }
+
+        newOrder.subtotal = subtotal_amount;
+        newOrder.deliveryCharge = totalDeliveryCharge;
+        newOrder.orderAmount = subtotal_amount - (newOrder.discount || 0) + totalDeliveryCharge;
+
         await newOrder.save({ session });
+        // console.log("New Order 2:", newOrder);
 
         const newCart = new Cart({
             userId: cart.userId,
@@ -568,11 +648,12 @@ const addItemQuantityInOrder = async (req, res) => {
                 }
             }
 
-            //   const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
-            //     (acc, charge) => acc + charge,
-            //     0
-            //   );
-            const totalDeliveryCharge = Math.max(...Array.from(categoryCharges.values()));
+            let values = Array.from(categoryCharges.values());
+            let totalDeliveryCharge = Math.max(...values);
+
+            if (!isFinite(totalDeliveryCharge) || totalDeliveryCharge === undefined) {
+                totalDeliveryCharge = 0;
+            }
 
             order.subtotal = subtotal;
             order.deliveryCharge = totalDeliveryCharge;
@@ -676,12 +757,12 @@ const removeItemQuantityInOrder = async (req, res) => {
                 }
             }
 
-            const totalDeliveryCharge = categoryCharges && categoryCharges?.length
-                ? Math.max(...Array.from(categoryCharges.values())) : 0;
-            //   const totalDeliveryCharge = Array.from(categoryCharges.values()).reduce(
-            //     (acc, charge) => acc + charge,
-            //     0
-            //   );
+            let values = Array.from(categoryCharges.values());
+            let totalDeliveryCharge = Math.max(...values);
+
+            if (!isFinite(totalDeliveryCharge) || totalDeliveryCharge === undefined) {
+                totalDeliveryCharge = 0;
+            }
 
             order.subtotal = subtotal;
             order.deliveryCharge = totalDeliveryCharge;
