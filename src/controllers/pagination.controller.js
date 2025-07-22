@@ -20,6 +20,8 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
 
   const filter = {};
 
+  filter.abondonedOrder = false;
+
   // Filter by status and type
   if (status && status !== "all") filter.status = status;
   if (type && type !== "all") {
