@@ -13,6 +13,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { checkPickupStatus } from './shiprocket.controller.js';
 import { Address } from '../models/address.model.js';
 import { isNumber } from 'razorpay/dist/utils/razorpay-utils.js';
+import { PaymentLink } from '../models/payment_link.model.js';
 
 const razorpayConfig = () => {
     const razorpay = new Razorpay({
@@ -38,25 +39,41 @@ const paymentLinkWebhook = asyncHandler(async (req, res) => {
 
 
     if (expectedSignature === signature) {
-        const payload = req.body.payload;
 
-        // console.log("Razorpay Payload", payload);
+        const paymentLink = event.payload.payment_link.entity;
+        const payment = event.payload.payment.entity;
+        const paymentLinkId = paymentLink.id;
+        // const referenceId = paymentLink.reference_id;
+        const status = paymentLink.status;
+
+        console.log("✅ Payment Link Paid:");
+        console.log("Payment Link ID:", paymentLinkId);
+        // console.log("Reference ID:", referenceId);
+        console.log("Payment Link:", paymentLink);
+        console.log("Payment:", payment);
+        console.log("Status:", status);
+
+        const foundPaymentLink = await PaymentLink.findOneAndUpdate(
+            {
+                orderId: paymentLink?.notes?.orderId,
+                paymentLink_id: paymentLinkId
+            },
+            { status },
+            { new: true }
+        );
+
         const event = req.body;
-
         if (event.event === "payment_link.paid") {
-            const paymentLink = event.payload.payment_link.entity;
-            const payment = event.payload.payment.entity;
-            const paymentLinkId = paymentLink.id;
-            const referenceId = paymentLink.reference_id;
-            const status = paymentLink.status;
-
-            console.log("✅ Payment Link Paid:");
-            console.log("Payment Link ID:", paymentLinkId);
-            console.log("Reference ID:", referenceId);
-            console.log("Status:", paymentLink);
-            console.log("Status:", payment);
-            console.log("Status:", status);
-
+            const updatedOrder = await Order.findByIdAndUpdate(
+                paymentLink?.notes?.orderId,
+                {
+                    abondonedOrder: false,
+                    razorpayOrderId: order_id,
+                    razorpayPaymentId: payment.id,
+                    paymentStatus: "Paid"
+                },
+                { new: true }
+            );
         }
 
         // Update order status based on payment_link.paid or failed
