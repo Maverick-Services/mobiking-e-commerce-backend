@@ -56,7 +56,7 @@ const paymentLinkWebhook = asyncHandler(async (req, res) => {
 
         const foundPaymentLink = await PaymentLink.findOneAndUpdate(
             {
-                orderId: paymentLink?.notes?.orderId,
+                // orderId: paymentLink?.notes?.orderId,
                 paymentLink_id: paymentLinkId
             },
             { status },
