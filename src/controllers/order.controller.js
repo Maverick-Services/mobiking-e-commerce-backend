@@ -27,9 +27,8 @@ const razorpayConfig = () => {
 // ******************************************************
 
 const paymentLinkWebhook = asyncHandler(async (req, res) => {
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const secret = process.env.RAZORPAY_KEY_SECRET;
 
-    console.log("Razorpay Webhook", req.body);
     const expectedSignature = crypto
         .createHmac("sha256", secret)
         .update(JSON.stringify(req.body))
@@ -39,8 +38,9 @@ const paymentLinkWebhook = asyncHandler(async (req, res) => {
 
 
     if (expectedSignature === signature) {
-        const payload = req.body;
+        const payload = req.body.payload;
 
+        // console.log("Razorpay Payload", payload);
         const event = req.body;
 
         if (event.event === "payment_link.paid") {
@@ -53,12 +53,10 @@ const paymentLinkWebhook = asyncHandler(async (req, res) => {
             console.log("✅ Payment Link Paid:");
             console.log("Payment Link ID:", paymentLinkId);
             console.log("Reference ID:", referenceId);
+            console.log("Status:", paymentLink);
+            console.log("Status:", payment);
             console.log("Status:", status);
 
-            const foundOrder = await Order.find({
-                _id: referenceId,
-                paymentLink_id: paymentLinkId
-            })
         }
 
         // Update order status based on payment_link.paid or failed
