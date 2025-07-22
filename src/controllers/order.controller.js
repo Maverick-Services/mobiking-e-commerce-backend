@@ -29,7 +29,6 @@ const razorpayConfig = () => {
 const paymentLinkWebhook = asyncHandler(async (req, res) => {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-    const crypto = require("crypto");
     const expectedSignature = crypto
         .createHmac("sha256", secret)
         .update(JSON.stringify(req.body))
