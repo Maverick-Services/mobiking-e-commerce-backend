@@ -75,6 +75,20 @@ const generatePaymentLink = asyncHandler(async (req, res) => {
     }
 });
 
+const getAllPaymentLinks = asyncHandler(async (req, res) => {
+    const allPaymentLinks = await PaymentLink.find({}).populate("orderId");
+    if (!allPaymentLinks)
+        throw new ApiError(404, "Payment Links not found");
+
+    return res.status(200).json(
+        new ApiResponse(200,
+            allPaymentLinks,
+            "Payment Links Fetched Succefully"
+        )
+    )
+});
+
 export {
-    generatePaymentLink
+    generatePaymentLink,
+    getAllPaymentLinks
 }
