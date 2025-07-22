@@ -26,6 +26,49 @@ const razorpayConfig = () => {
 //                  PLACE, ACCEPT, REJECT ORDER CONTROLLERS
 // ******************************************************
 
+const paymentLinkWebhook = asyncHandler(async (req, res) => {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    const crypto = require("crypto");
+    const expectedSignature = crypto
+        .createHmac("sha256", secret)
+        .update(JSON.stringify(req.body))
+        .digest("hex");
+
+    const signature = req.headers["x-razorpay-signature"];
+
+    console.log("Razorpay Webhook", req.body);
+
+    if (expectedSignature === signature) {
+        const payload = req.body;
+
+        const event = req.body;
+
+        if (event.event === "payment_link.paid") {
+            const paymentLink = event.payload.payment_link.entity;
+            const payment = event.payload.payment.entity;
+            const paymentLinkId = paymentLink.id;
+            const referenceId = paymentLink.reference_id;
+            const status = paymentLink.status;
+
+            console.log("✅ Payment Link Paid:");
+            console.log("Payment Link ID:", paymentLinkId);
+            console.log("Reference ID:", referenceId);
+            console.log("Status:", status);
+
+            const foundOrder = await Order.find({
+                _id: referenceId,
+                paymentLink_id: paymentLinkId
+            })
+        }
+
+        // Update order status based on payment_link.paid or failed
+        res.status(200).json({ status: "Webhook verified" });
+    } else {
+        res.status(400).json({ error: "Invalid signature" });
+    }
+});
+
 const createPosOrder = asyncHandler(async (req, res) => {
     const session = await mongoose.startSession();
 
@@ -1777,6 +1820,7 @@ const returnOrder = asyncHandler(async (req, res) => {
 })
 
 export {
+    paymentLinkWebhook,
     createPosOrder,
     createCodOrder,
     createOnlineOrder,
