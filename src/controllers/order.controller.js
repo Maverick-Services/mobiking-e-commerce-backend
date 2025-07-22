@@ -29,6 +29,7 @@ const razorpayConfig = () => {
 const paymentLinkWebhook = asyncHandler(async (req, res) => {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
+    console.log("Razorpay Webhook", req.body);
     const expectedSignature = crypto
         .createHmac("sha256", secret)
         .update(JSON.stringify(req.body))
@@ -36,7 +37,6 @@ const paymentLinkWebhook = asyncHandler(async (req, res) => {
 
     const signature = req.headers["x-razorpay-signature"];
 
-    console.log("Razorpay Webhook", req.body);
 
     if (expectedSignature === signature) {
         const payload = req.body;
