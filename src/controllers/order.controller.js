@@ -40,18 +40,19 @@ const paymentLinkWebhook = asyncHandler(async (req, res) => {
 
     if (expectedSignature === signature) {
 
+        const event = req.body;
         const paymentLink = event.payload.payment_link.entity;
         const payment = event.payload.payment.entity;
         const paymentLinkId = paymentLink.id;
         // const referenceId = paymentLink.reference_id;
         const status = paymentLink.status;
 
-        console.log("✅ Payment Link Paid:");
-        console.log("Payment Link ID:", paymentLinkId);
+        // console.log("✅ Payment Link Paid:");
+        // console.log("Payment Link ID:", paymentLinkId);
         // console.log("Reference ID:", referenceId);
-        console.log("Payment Link:", paymentLink);
-        console.log("Payment:", payment);
-        console.log("Status:", status);
+        // console.log("Payment Link:", paymentLink);
+        // console.log("Payment:", payment);
+        // console.log("Status:", status);
 
         const foundPaymentLink = await PaymentLink.findOneAndUpdate(
             {
@@ -62,7 +63,6 @@ const paymentLinkWebhook = asyncHandler(async (req, res) => {
             { new: true }
         );
 
-        const event = req.body;
         if (event.event === "payment_link.paid") {
             const updatedOrder = await Order.findByIdAndUpdate(
                 paymentLink?.notes?.orderId,
