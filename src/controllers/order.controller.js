@@ -68,7 +68,7 @@ const paymentLinkWebhook = asyncHandler(async (req, res) => {
                 paymentLink?.notes?.orderId,
                 {
                     abondonedOrder: false,
-                    razorpayOrderId: order_id,
+                    razorpayOrderId: paymentLink?.order_id,
                     razorpayPaymentId: payment.id,
                     paymentStatus: "Paid"
                 },
