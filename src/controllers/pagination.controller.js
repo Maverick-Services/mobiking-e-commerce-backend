@@ -19,8 +19,11 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const filter = {};
+  const searchFilter = {};
+  const countFilter = {};
 
   filter.abondonedOrder = false;
+  countFilter.abondonedOrder = false;
 
   // Filter by status and type
   if (status && status !== "all") filter.status = status;
@@ -31,10 +34,12 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
         break;
 
       case "web":
+        filter.type = "Regular"
         filter.isAppOrder = false
         break;
 
       case "app":
+        filter.type = "Regular"
         filter.isAppOrder = true
         break;
 
@@ -50,25 +55,33 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
     filter.createdAt = { $gte: start, $lte: end };
+    countFilter.createdAt = { $gte: start, $lte: end };
   }
 
   // Filter by customer or order
   if (searchQuery && queryParameter === "customer") {
     const regex = new RegExp(searchQuery);
-    filter.$or = [
+    // filter.$or = [
+    //   { name: regex },
+    //   { email: regex },
+    //   { phoneNo: regex }
+    // ];
+    searchFilter.$or = [
       { name: regex },
       { email: regex },
       { phoneNo: regex }
     ];
   } else if (searchQuery && queryParameter === "order") {
-    filter.orderId = new RegExp(searchQuery);
+    // filter.orderId = new RegExp(searchQuery);
+    searchFilter.orderId = new RegExp(searchQuery);
   }
 
   const [
     orders, totalCount,
-    newCount, acceptedCount, shippedCount, cancelledCount, deliveredCount
+    newCount, acceptedCount, shippedCount, cancelledCount, deliveredCount,
+    posOrderCount, websiteOrderCount, appOrderCount, abandonedOrderCount
   ] = await Promise.all([
-    Order.find(filter)
+    Order.find({ ...filter })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -96,6 +109,10 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     Order.countDocuments({ ...filter, status: "Shipped" }),
     Order.countDocuments({ ...filter, status: "Canelled" }),
     Order.countDocuments({ ...filter, status: "Delivered" }),
+    Order.countDocuments({ ...countFilter, type: "Pos" }),
+    Order.countDocuments({ ...countFilter, type: "Regular", isAppOrder: false }),
+    Order.countDocuments({ ...countFilter, type: "Regular", isAppOrder: true }),
+    Order.countDocuments({ ...countFilter, abondonedOrder: true }),
   ]);
 
   const totalPages = Math.ceil(totalCount / limit);
@@ -107,6 +124,9 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
       newCount, acceptedCount,
       shippedCount, cancelledCount,
       deliveredCount,
+      posOrderCount,
+      websiteOrderCount, appOrderCount,
+      abandonedOrderCount,
       pagination: {
         page,
         limit,
