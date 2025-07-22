@@ -27,7 +27,7 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
   if (type && type !== "all") {
     switch (type) {
       case "pos":
-        filter.type = "POS"
+        filter.type = "Pos"
         break;
 
       case "web":
@@ -54,14 +54,14 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
 
   // Filter by customer or order
   if (searchQuery && queryParameter === "customer") {
-    const regex = new RegExp(searchQuery + "i");
+    const regex = new RegExp(searchQuery);
     filter.$or = [
       { name: regex },
       { email: regex },
       { phoneNo: regex }
     ];
   } else if (searchQuery && queryParameter === "order") {
-    filter.orderId = new RegExp(searchQuery + "i");
+    filter.orderId = new RegExp(searchQuery);
   }
 
   const [
