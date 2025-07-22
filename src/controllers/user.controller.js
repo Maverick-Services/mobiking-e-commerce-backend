@@ -393,6 +393,30 @@ const updateCustomer = asyncHandler(async (req, res) => {
 
 })
 
+const getCustomerByMobile = asyncHandler(async (req, res) => {
+
+    const {
+        phoneNo,
+    } = req.params;
+
+    if (
+        [phoneNo].some((field) => field?.trim() === "")
+    ) {
+        throw new ApiError(400, "Phone No is undefined")
+    }
+
+    const existedUser = await User.findOne({ phoneNo, role: "user" });
+    ;
+    if (!existedUser) {
+        throw new ApiError(409, "User not found with this phone number");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(201, existedUser?._id, "Profile updated Successfully")
+    )
+
+})
+
 const createEmployee = asyncHandler(async (req, res) => {
     // get user details from frontend
     // validation - not empty
@@ -1222,6 +1246,7 @@ export {
     refreshAccessToken,
     createCustomer,
     updateCustomer,
+    getCustomerByMobile,
     createEmployee,
     editEmployee,
     deleteEmployee,

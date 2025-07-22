@@ -4,6 +4,7 @@ import {
     createEmployee,
     deleteEmployee,
     editEmployee,
+    getCustomerByMobile,
     getUserById,
     getUserPermissions,
     getUsersByRole,
@@ -35,6 +36,7 @@ const router = Router()
 router.route("/permissions").get(verifyJWT, getUserPermissions);
 router.route("/profile/update").post(verifyJWT, updateCustomer);
 router.route("/createCustomer").post(verifyJWT, createCustomer);
+router.route("/customer/:phoneNo").get(verifyJWT, getCustomerByMobile);
 router.route("/createUser").post(verifyJWT, createEmployee);
 router.route("/login").post(loginUser);
 router.route("/refresh-token").post(refreshAccessToken)
