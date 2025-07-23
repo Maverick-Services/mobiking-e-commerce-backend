@@ -6,6 +6,165 @@ import { User } from "../models/user.model.js";
 import { Query } from "../models/query.model.js";
 // import mongoose from "mongoose";
 
+const getSalesData = async (salesFilter) => {
+
+  const [
+    allOrder, websiteOrder, appOrder, posOrder,
+    codOrder, onlineOrder, cashOrder, upiOrder
+  ] = await Promise.all([
+
+    // Total Order Sales
+    Order.aggregate([
+      {
+        $match: salesFilter
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          sales: { $sum: "$orderAmount" }
+        }
+      }
+    ]),
+
+    // Website Order Sales
+    Order.aggregate([
+      {
+        $match: {
+          ...salesFilter,
+          type: "Regular",
+          isAppOrder: false
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          sales: { $sum: "$orderAmount" }
+        }
+      }
+    ]),
+
+    // App Order Sales
+    Order.aggregate([
+      {
+        $match: {
+          ...salesFilter,
+          type: "Regular",
+          isAppOrder: true
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          sales: { $sum: "$orderAmount" }
+        }
+      }
+    ]),
+
+    // Pos Order Sales
+    Order.aggregate([
+      {
+        $match: {
+          ...salesFilter,
+          type: "Pos",
+          // isAppOrder: false
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          sales: { $sum: "$orderAmount" }
+        }
+      }
+    ]),
+
+    // Cod Order Sales
+    Order.aggregate([
+      {
+        $match: {
+          ...salesFilter,
+          method: "COD"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          sales: { $sum: "$orderAmount" }
+        }
+      }
+    ]),
+
+    // Online Order Sales
+    Order.aggregate([
+      {
+        $match: {
+          ...salesFilter,
+          method: "Online"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          sales: { $sum: "$orderAmount" }
+        }
+      }
+    ]),
+
+    // Cash Order Sales
+    Order.aggregate([
+      {
+        $match: {
+          ...salesFilter,
+          method: "Cash"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          sales: { $sum: "$orderAmount" }
+        }
+      }
+    ]),
+
+    // UPI Order Sales
+    Order.aggregate([
+      {
+        $match: {
+          ...salesFilter,
+          method: "UPI"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          sales: { $sum: "$orderAmount" }
+        }
+      }
+    ]),
+
+  ]);
+
+  const salesData = {
+    allOrder: allOrder[0],
+    websiteOrder: websiteOrder[0],
+    appOrder: appOrder[0],
+    posOrder: posOrder[0],
+    codOrder: codOrder[0],
+    onlineOrder: onlineOrder[0],
+    cashOrder: cashOrder[0],
+    upiOrder: upiOrder[0]
+  }
+
+  return salesData;
+}
+
 export const getPaginatedOrders = asyncHandler(async (req, res) => {
   const status = req?.query?.status;
   const type = req?.query?.type;
@@ -21,9 +180,11 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
   const filter = {};
   const searchFilter = {};
   const countFilter = {};
+  const salesFilter = {};
 
   filter.abondonedOrder = false;
   countFilter.abondonedOrder = false;
+  salesFilter.abondonedOrder = false;
 
   // Filter by status and type
   if (status && status !== "all") filter.status = status;
@@ -56,30 +217,33 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     end.setHours(23, 59, 59, 999);
     filter.createdAt = { $gte: start, $lte: end };
     countFilter.createdAt = { $gte: start, $lte: end };
+    salesFilter.createdAt = { $gte: start, $lte: end };
   }
 
   // Filter by customer or order
   if (searchQuery && queryParameter === "customer") {
     const regex = new RegExp(searchQuery);
-    // filter.$or = [
-    //   { name: regex },
-    //   { email: regex },
-    //   { phoneNo: regex }
-    // ];
     searchFilter.$or = [
       { name: regex },
       { email: regex },
       { phoneNo: regex }
     ];
   } else if (searchQuery && queryParameter === "order") {
-    // filter.orderId = new RegExp(searchQuery);
     searchFilter.orderId = new RegExp(`^${searchQuery}`, "i");
   }
 
+  //Order Sales Card Data
+  salesFilter.status = {
+    $nin: ["Rejected", "Cancelled", "Returned", "Replaced", "Hold"]
+  }
+
+  const salesData = await getSalesData(salesFilter);
+
+  // Order Table Data
   const [
     orders, totalCount,
     newCount, acceptedCount, shippedCount, cancelledCount, deliveredCount,
-    posOrderCount, websiteOrderCount, appOrderCount, abandonedOrderCount
+    allOrderCount, posOrderCount, websiteOrderCount, appOrderCount, abandonedOrderCount
   ] = await Promise.all([
     Order.find({ ...filter, ...searchFilter })
       .sort({ createdAt: -1 })
@@ -109,6 +273,7 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     Order.countDocuments({ ...filter, status: "Shipped" }),
     Order.countDocuments({ ...filter, status: "Canelled" }),
     Order.countDocuments({ ...filter, status: "Delivered" }),
+    Order.countDocuments(countFilter),
     Order.countDocuments({ ...countFilter, type: "Pos" }),
     Order.countDocuments({ ...countFilter, type: "Regular", isAppOrder: false }),
     Order.countDocuments({ ...countFilter, type: "Regular", isAppOrder: true }),
@@ -121,10 +286,11 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     new ApiResponse(200, {
       orders,
       totalCount,
+      salesData,
       newCount, acceptedCount,
       shippedCount, cancelledCount,
       deliveredCount,
-      posOrderCount,
+      allOrderCount, posOrderCount,
       websiteOrderCount, appOrderCount,
       abandonedOrderCount,
       pagination: {
@@ -313,63 +479,6 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
     }, "Products fetched successfully")
   );
 });
-
-// export const getPaginatedUsers = asyncHandler(async (req, res) => {
-//   const { role, startDate, endDate } = req.query;
-//   const searchQuery = req?.query?.searchQuery?.trim();
-
-//   const page = Math.max(1, parseInt(req.query.page) || 1);
-//   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
-//   const skip = (page - 1) * limit;
-
-//   const filter = {};
-
-//   if (role && role !== "all") {
-//     filter.role = role;
-//   }
-
-//   if (startDate && endDate) {
-//     const start = new Date(startDate);
-//     const end = new Date(endDate);
-//     end.setUTCHours(23, 59, 59, 999); // Include full end day
-//     filter.createdAt = { $gte: start, $lte: end };
-//   }
-
-//   if (searchQuery) {
-//     const regex = new RegExp(searchQuery);
-//     filter.$or = [
-//       { name: regex },
-//       { email: regex },
-//       { phoneNo: regex }
-//     ];
-//   }
-
-//   const [users, totalCount] = await Promise.all([
-//     User.find(filter)
-//       .sort({ createdAt: -1 })
-//       .skip(skip)
-//       .limit(limit)
-//       .select("-password -refreshToken")
-//       .lean(),
-//     User.countDocuments(filter),
-//   ]);
-
-//   const totalPages = Math.ceil(totalCount / limit);
-
-//   return res.status(200).json(
-//     new ApiResponse(200, {
-//       users,
-//       totalCount,
-//       pagination: {
-//         page,
-//         limit,
-//         totalPages,
-//         hasNextPage: page < totalPages,
-//         hasPrevPage: page > 1,
-//       },
-//     }, "Users fetched successfully")
-//   );
-// });
 
 export const getPaginatedUsers = asyncHandler(async (req, res) => {
   const { role, startDate, endDate, type } = req.query;
