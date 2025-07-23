@@ -242,7 +242,7 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
   // Order Table Data
   const [
     orders, totalCount,
-    newCount, acceptedCount, shippedCount, cancelledCount, deliveredCount,
+    newCount, acceptedCount, rejectedCount, holdCount, shippedCount, cancelledCount, deliveredCount,
     allOrderCount, posOrderCount, websiteOrderCount, appOrderCount, abandonedOrderCount
   ] = await Promise.all([
     Order.find({ ...filter, ...searchFilter })
@@ -270,8 +270,10 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     Order.countDocuments(filter),
     Order.countDocuments({ ...filter, status: "New" }),
     Order.countDocuments({ ...filter, status: "Accepted" }),
+    Order.countDocuments({ ...filter, status: "Rejected" }),
+    Order.countDocuments({ ...filter, status: "Hold" }),
     Order.countDocuments({ ...filter, status: "Shipped" }),
-    Order.countDocuments({ ...filter, status: "Canelled" }),
+    Order.countDocuments({ ...filter, status: "Cancelled" }),
     Order.countDocuments({ ...filter, status: "Delivered" }),
     Order.countDocuments(countFilter),
     Order.countDocuments({ ...countFilter, type: "Pos" }),
@@ -287,7 +289,7 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
       orders,
       totalCount,
       salesData,
-      newCount, acceptedCount,
+      newCount, acceptedCount, rejectedCount, holdCount,
       shippedCount, cancelledCount,
       deliveredCount,
       allOrderCount, posOrderCount,
