@@ -222,7 +222,7 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
 
   // Filter by customer or order
   if (searchQuery && queryParameter === "customer") {
-    const regex = new RegExp(searchQuery);
+    const regex = new RegExp(searchQuery, "i");
     searchFilter.$or = [
       { name: regex },
       { email: regex },
