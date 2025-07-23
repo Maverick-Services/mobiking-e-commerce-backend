@@ -73,7 +73,7 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     ];
   } else if (searchQuery && queryParameter === "order") {
     // filter.orderId = new RegExp(searchQuery);
-    searchFilter.orderId = new RegExp(searchQuery);
+    searchFilter.orderId = new RegExp(`^${searchQuery}`, "i");
   }
 
   const [
@@ -81,7 +81,7 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     newCount, acceptedCount, shippedCount, cancelledCount, deliveredCount,
     posOrderCount, websiteOrderCount, appOrderCount, abandonedOrderCount
   ] = await Promise.all([
-    Order.find({ ...filter })
+    Order.find({ ...filter, ...searchFilter })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -201,7 +201,7 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
   }
 
   if (searchQuery) {
-    const regex = new RegExp(searchQuery + "i");
+    const regex = new RegExp(`^${searchQuery}`, "i");
     filter.$or = [
       { name: regex },
       { fullName: regex },
