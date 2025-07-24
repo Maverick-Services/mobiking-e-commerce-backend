@@ -240,6 +240,9 @@ const createCodOrder = asyncHandler(async (req, res) => {
             throw new ApiError(400, 'Required details not found.');
         }
 
+        if (orderAmount > 5000)
+            throw new ApiError(400, "COD Order cannot be above Rs.5000");
+
         const cart = await Cart.findOne({ _id: cartId }).populate('items.productId');
         if (!cart || cart.items.length === 0) {
             throw new ApiError(400, 'Cart is empty or not found.');
