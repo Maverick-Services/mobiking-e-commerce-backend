@@ -413,7 +413,7 @@ const getCustomerByMobile = asyncHandler(async (req, res) => {
     const existedUser = await User.findOne({ phoneNo, role: "user" });
     ;
     if (!existedUser) {
-        throw new ApiError(409, "User not found with this phone number");
+        return new ApiResponse(200, "User not found with this phone number");
     }
 
     return res.status(200).json(
