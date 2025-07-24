@@ -14,7 +14,6 @@ const router = Router()
 
 //Category Routes
 router.route("/createCategory").post(verifyJWT, createCategory);
-router.route("/status/:_id").put(verifyJWT, updateSubCategoryStatus);
 router.route("/:_id").put(verifyJWT, editCategory);
 router.route("/:_id").delete(verifyJWT, deleteCategory);
 router.route("/").get(getAllCategories);
@@ -23,6 +22,7 @@ router.route("/details/:slug").get(getCategoryBySlug);
 
 //Sub Category Routes
 router.route("/createSubCategory").post(verifyJWT, createSubCategory);
+router.route("/subCategories/status/:_id").put(verifyJWT, updateSubCategoryStatus);
 router.route("/subCategories/:_id").put(verifyJWT, editSubCategory);
 router.route("/subCategories/:_id").delete(verifyJWT, deleteSubCategory);
 router.route("/subCategories").get(getAllSubCategories);
