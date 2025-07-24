@@ -96,7 +96,7 @@ const createPosOrder = asyncHandler(async (req, res) => {
             gst,
             discount,
             subtotal,
-            method = 'COD',
+            method = 'Cash',
             items
         } = req.body;
 
@@ -126,6 +126,155 @@ const createPosOrder = asyncHandler(async (req, res) => {
             gst,
             subtotal,
             items
+        });
+
+        let updatedUser = null;
+        await session.withTransaction(async () => {
+            // Save order
+            await newOrderDoc.save({ session });
+
+            // Decrement stock
+            const bulkOps = newOrderDoc?.items.map(it => ({
+                updateOne: {
+                    filter: {
+                        _id: it.productId._id,
+                        totalStock: { $gte: it.quantity },
+                        [`variants.${it.variantName}`]: { $gte: it.quantity }
+                    },
+                    update: {
+                        $inc: {
+                            totalStock: -it.quantity,
+                            [`variants.${it.variantName}`]: -it.quantity
+                        }
+                    }
+                }
+            }));
+
+            const bulkRes = await Product.bulkWrite(bulkOps, { session });
+            const failed = bulkRes.modifiedCount !== newOrderDoc.items.length;
+            if (failed) throw new ApiError(404, 'One or more items are out of stock.');
+
+            // ✅ Add order to each product
+
+            //Finding unique product ids and then add them
+            const uniqueProductIds = new Set();
+            newOrderDoc.items.forEach(it => {
+                if (it.productId && it.productId._id) {
+                    uniqueProductIds.add(it.productId._id.toString());
+                }
+            });
+
+            const productOrderOps = Array.from(uniqueProductIds).map(productId => ({
+                updateOne: {
+                    filter: { _id: productId },
+                    update: { $push: { orders: newOrderDoc._id } }
+                }
+            }));
+
+            // console.log("Product Ids: ",productOrderOps);
+            if (productOrderOps.length > 0) {
+                const productResult = await Product.bulkWrite(productOrderOps, { session });
+                console.log('Order pushed to products:', productResult);
+            } else {
+                console.warn('⚠️ No valid products found to push order');
+            }
+
+            // Add order to user
+            updatedUser = await User.findByIdAndUpdate(
+                req?.user?._id,
+                { $push: { orders: newOrderDoc._id } },
+                { new: true, session }
+            ).select('-password -refreshToken')
+                .populate({
+                    path: "cart",
+                    populate: {
+                        path: "items.productId",
+                        model: "Product",
+                        populate: {
+                            path: "category",  // This is the key part
+                            model: "SubCategory"
+                        }
+                    }
+                })
+                .populate("wishlist")
+                .populate("address")
+                .populate("orders")
+                .exec();
+
+            if (!updatedUser) throw new ApiError(500, "Failed to update user orders");
+
+        });
+
+        return res.status(201).json(
+            new ApiResponse(201, { order: newOrderDoc, user: updatedUser }, "Order Placed Successfully")
+        );
+
+    } catch (err) {
+        console.error('Error placing order:', err.message);
+        return res.status(500).json({ message: err.message || 'Internal server error' });
+    } finally {
+        session.endSession();
+    }
+});
+
+const createManualOrder = asyncHandler(async (req, res) => {
+    const session = await mongoose.startSession();
+
+    try {
+        const {
+            userId,
+            name, email, phoneNo,
+            orderAmount,
+            gst,
+            discount = 0,
+            subtotal,
+            method = 'COD',
+            items,
+            deliveryCharge = 0,
+            address,
+            address2,
+            city,
+            state,
+            country = "India",
+            pincode
+        } = req.body;
+
+        if (
+            !userId ||
+            !name || !phoneNo ||
+            !orderAmount ||
+            !subtotal ||
+            !address || !city || !state ||
+            !country || !pincode ||
+            !method || !items
+        ) {
+            throw new ApiError(400, 'Required details not found.');
+        }
+
+        const paymentDate = (method == "Cash" || method == "Online") ? new Date() : null;
+        const newOrderDoc = new Order({
+            userId,
+            name: name.trim(),
+            phoneNo: phoneNo.trim(),
+            email: email?.trim(),
+            method,
+            type: 'Regular',
+            status: 'New',
+            paymentStatus: method == 'Online' ? 'Paid' : 'Pending',
+            paymentDate,
+            orderId: uuidv4().split('-')[0].toUpperCase(),
+            items,
+            orderAmount,
+            discount,
+            gst,
+            subtotal,
+            deliveryCharge: deliveryCharge || 0,
+            address: address?.trim(),
+            address2: address2?.trim() || 0,
+            city: city?.trim(),
+            state: state?.trim(),
+            country: country?.trim(),
+            pincode: pincode?.trim()
         });
 
         let updatedUser = null;
@@ -1853,6 +2002,7 @@ const returnOrder = asyncHandler(async (req, res) => {
 export {
     paymentLinkWebhook,
     createPosOrder,
+    createManualOrder,
     createCodOrder,
     createOnlineOrder,
     updateOrder,
