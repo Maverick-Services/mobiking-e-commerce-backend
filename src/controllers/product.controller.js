@@ -174,6 +174,10 @@ const updateProductStock = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Quantity must be a valid number");
     }
 
+    if (parsedQuantity == 0) {
+        throw new ApiError(400, "Quantity cannot be 0");
+    }
+
     // Fetch product
     const existingProduct = await Product.findById(productId)
         .populate("category stock")
