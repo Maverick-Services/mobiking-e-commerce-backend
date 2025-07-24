@@ -64,13 +64,15 @@ const paymentLinkWebhook = asyncHandler(async (req, res) => {
         );
 
         if (event.event === "payment_link.paid") {
+            const paymentDate = new Date();
             const updatedOrder = await Order.findByIdAndUpdate(
                 paymentLink?.notes?.orderId,
                 {
                     abondonedOrder: false,
                     razorpayOrderId: paymentLink?.order_id,
                     razorpayPaymentId: payment.id,
-                    paymentStatus: "Paid"
+                    paymentStatus: "Paid",
+                    paymentDate
                 },
                 { new: true }
             );
@@ -108,6 +110,7 @@ const createPosOrder = asyncHandler(async (req, res) => {
             throw new ApiError(400, 'Required details not found.');
         }
 
+        const paymentDate = (method == "Cash" || method == "Online") ? new Date() : null;
         const newOrderDoc = new Order({
             userId,
             name: name.trim(),
@@ -116,6 +119,7 @@ const createPosOrder = asyncHandler(async (req, res) => {
             type: 'Pos',
             status: 'Delivered',
             paymentStatus: method == 'Cash' ? 'Paid' : 'Pending',
+            paymentDate,
             orderId: uuidv4().split('-')[0].toUpperCase(),
             orderAmount,
             discount,
@@ -481,6 +485,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             pincode: foundAddress?.pinCode
         }
 
+        const paymentDate = new Date();
         // 2️⃣ Create Order in DB (status: Created)
         const newOrder = new Order({
             ...addressDetails,
@@ -493,7 +498,8 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             method: 'Online',
             type: 'Regular',
             status: 'New',
-            paymentStatus: 'Pending',
+            paymentStatus: 'Paid',
+            paymentDate,
             isAppOrder,
             abondonedOrder: true,
             orderId: uuidv4().split('-')[0].toUpperCase(),

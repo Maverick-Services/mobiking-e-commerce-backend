@@ -74,6 +74,9 @@ const orderSchema = new mongoose.Schema(
             enum: ["Pending", "Paid"],
             default: "Pending"
         },
+        paymentDate: {
+            type: Date,
+        },
 
         /****************  SHIPROCKET FIELDS  *****************/
         shipmentId: String,  // Shiprocket shipment_id
