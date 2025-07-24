@@ -1411,7 +1411,7 @@ const getOrdersByDate = asyncHandler(async (req, res) => {
                 model: "SubCategory"
             }
         })
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: 1 });
     // .exec()
 
     /* --------------------------- 3. Respond ------------------------------- */
