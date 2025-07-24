@@ -7,7 +7,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const createProduct = asyncHandler(async (req, res) => {
-    const {
+    let {
         name, fullName, description,
         price, categoryId,
         slug, active, images,
@@ -27,6 +27,10 @@ const createProduct = asyncHandler(async (req, res) => {
     ) {
         throw new ApiError(400, "Details not found");
     }
+
+    name = name.trim()
+    fullName = fullName.trim()
+    description = description.trim()
 
     // Validate parent category Id
     const foundCategory = await SubCategory.findById(categoryId);
@@ -157,7 +161,7 @@ const createProduct = asyncHandler(async (req, res) => {
 // });
 
 const updateProductStock = asyncHandler(async (req, res) => {
-    const {
+    let {
         vendor,
         variantName,
         purchasePrice,
@@ -165,9 +169,11 @@ const updateProductStock = asyncHandler(async (req, res) => {
         productId
     } = req.body;
 
+
     if (!variantName || quantity === undefined || !productId) {
         throw new ApiError(400, "All stock details are required");
     }
+    variantName = variantName.trim()
 
     const parsedQuantity = parseInt(quantity);
     if (isNaN(parsedQuantity)) {
@@ -278,7 +284,9 @@ const editProduct = asyncHandler(async (req, res) => {
     const updatedProduct = await Product.findByIdAndUpdate(
         { _id },
         {
-            name, fullName, description,
+            name: name?.trim(),
+            fullName: fullName?.trim(),
+            description: description?.trim(),
             slug,
             hsn, sku,
             active: active != undefined ? active : foundProduct?.active,

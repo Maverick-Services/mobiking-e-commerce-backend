@@ -110,7 +110,8 @@ const createPosOrder = asyncHandler(async (req, res) => {
 
         const newOrderDoc = new Order({
             userId,
-            name, phoneNo,
+            name: name.trim(),
+            phoneNo: phoneNo.trim(),
             method,
             type: 'Pos',
             status: 'Delivered',
@@ -269,7 +270,9 @@ const createCodOrder = asyncHandler(async (req, res) => {
         let newOrderDoc = new Order({
             ...addressDetails,
             userId,
-            name, email, phoneNo,
+            name: name.trim(),
+            email: email.trim(),
+            phoneNo: phoneNo.trim(),
             // address,
             addressId,
             method,
@@ -482,7 +485,9 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
         const newOrder = new Order({
             ...addressDetails,
             userId,
-            name, email, phoneNo,
+            name: name.trim(),
+            email: email.trim(),
+            phoneNo: phoneNo.trim(),
             // address,
             addressId,
             method: 'Online',
@@ -614,7 +619,10 @@ const updateOrder = asyncHandler(async (req, res) => {
         const updatedOrder = await Order.findByIdAndUpdate(
             orderId,
             {
-                ...updates
+                ...updates,
+                // name: updates?.name?.trim(),
+                // email: updates?.email?.trim(),
+                // phoneNo: updates?.phoneNo?.trim(),
             },
             { new: true }
         );

@@ -267,7 +267,7 @@ const createCustomer = asyncHandler(async (req, res) => {
     // check for user creation
     // return res
 
-    const {
+    let {
         name, phoneNo,
     } = req.body
 
@@ -276,6 +276,9 @@ const createCustomer = asyncHandler(async (req, res) => {
     ) {
         throw new ApiError(400, "All fields are required")
     }
+
+    name = name?.trim();
+    phoneNo = phoneNo?.trim();
 
     const existedUser = await User.findOne({ phoneNo });
 
@@ -346,7 +349,7 @@ const createCustomer = asyncHandler(async (req, res) => {
 
 const updateCustomer = asyncHandler(async (req, res) => {
 
-    const {
+    let {
         name, email,
     } = req.body
 
@@ -356,6 +359,8 @@ const updateCustomer = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields are required")
     }
 
+    name = name?.trim();
+    email = email?.trim();
     const existedUser = await User.findOne({ email });
 
     // console.log(existedUser);
@@ -428,7 +433,7 @@ const createEmployee = asyncHandler(async (req, res) => {
     // check for user creation
     // return res
 
-    const {
+    let {
         name, email, phoneNo,
         password, role,
         permissions, departments,
@@ -440,6 +445,12 @@ const createEmployee = asyncHandler(async (req, res) => {
     ) {
         throw new ApiError(400, "All fields are required")
     }
+
+    name = name?.trim();
+    email = email?.trim();
+    phoneNo = phoneNo?.trim();
+    password = password?.trim();
+    role = role?.trim();
 
     if (role === ROLES.EMPLOYEE && (!permissions || !(departments))) {
         throw new ApiError(400, "Permissions and departments required for employee")
@@ -522,13 +533,18 @@ const createEmployee = asyncHandler(async (req, res) => {
 const editEmployee = asyncHandler(async (req, res) => {
     // const { _id } = req.user;
     const { _id } = req.params;
-    const { name, email, phoneNo, role, permissions, departments } = req.body
+    let { name, email, phoneNo, role, permissions, departments } = req.body
 
     if (
         [name, email, phoneNo, role].some((field) => field?.trim() === "")
     ) {
         throw new ApiError(400, "All fields are required")
     }
+
+    name = name?.trim();
+    email = email?.trim();
+    phoneNo = phoneNo?.trim();
+    role = role?.trim();
 
     if (role === ROLES.EMPLOYEE && (!permissions || !(departments))) {
         throw new ApiError(400, "Permissions and departments required for employee")
