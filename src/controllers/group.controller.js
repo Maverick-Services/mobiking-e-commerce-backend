@@ -282,7 +282,7 @@ const syncGroupProducts = asyncHandler(async (req, res) => {
 });
 
 const getAllGroups = asyncHandler(async (req, res) => {
-    const allGroups = await Group.find({}).populate("products").exec();
+    const allGroups = await Group.find({}).populate("products categories").exec();
 
     if (!allGroups) {
         throw new ApiError(409, "Could not find groups");
@@ -294,7 +294,7 @@ const getAllGroups = asyncHandler(async (req, res) => {
 });
 
 const getSpecialGroups = asyncHandler(async (req, res) => {
-    const allGroups = await Group.find({ isSpecial: true }).populate("products").exec();
+    const allGroups = await Group.find({ isSpecial: true }).populate("products categories").exec();
 
     if (!allGroups) {
         throw new ApiError(409, "Could not find groups");
@@ -315,7 +315,7 @@ const getGroupsByCategories = asyncHandler(async (req, res) => {
     const allGroups = await Group.find({
         categories: { $in: category }
     }
-    ).populate("products").exec();
+    ).populate("products categories").exec();
 
     if (!allGroups) {
         throw new ApiError(409, "Could not find groups");
