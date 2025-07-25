@@ -130,6 +130,10 @@ const editHomeLayout = asyncHandler(async (req, res) => {
                     path: 'category',
                     model: 'SubCategory'
                 }
+            },
+            populate: {
+                path: 'categories',
+                model: 'SubCategory'
             }
         })
         .populate("categories")
@@ -159,6 +163,10 @@ const getHomeLayout = asyncHandler(async (req, res) => {
                     path: 'category',
                     model: 'SubCategory'
                 }
+            },
+            populate: {
+                path: 'categories',
+                model: 'SubCategory'
             }
         })
         .populate("categories")
@@ -185,6 +193,10 @@ const getAllHomeLayout = asyncHandler(async (req, res) => {
                     path: 'category',
                     model: 'SubCategory'
                 }
+            },
+            populate: {
+                path: 'categories',
+                model: 'SubCategory'
             }
         })
         .populate("categories")
