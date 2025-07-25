@@ -53,6 +53,10 @@ const createHome = asyncHandler(async (req, res) => {
                     path: 'category',
                     model: 'SubCategory'
                 }
+            },
+            populate: {
+                path: 'categories',
+                model: 'SubCategory'
             }
         })
         .populate("categories")
