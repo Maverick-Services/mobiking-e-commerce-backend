@@ -44,21 +44,23 @@ const createHome = asyncHandler(async (req, res) => {
         { new: true }
     )
         .populate('groups')
-        .populate({
-            path: 'groups',
-            populate: {
-                path: 'products',
-                model: 'Product',
+        .populate([
+            {
+                path: 'groups',
                 populate: {
-                    path: 'category',
-                    model: 'SubCategory'
+                    path: 'products',
+                    model: 'Product',
+                    populate: {
+                        path: 'category',
+                        model: 'SubCategory'
+                    }
                 }
             },
-            populate: {
+            {
                 path: 'categories',
                 model: 'SubCategory'
             }
-        })
+        ])
         .populate("categories")
         .exec();
 
@@ -121,21 +123,23 @@ const editHomeLayout = asyncHandler(async (req, res) => {
         { new: true }
     )
         .populate('groups')
-        .populate({
-            path: 'groups',
-            populate: {
-                path: 'products',
-                model: 'Product',
+        .populate([
+            {
+                path: 'groups',
                 populate: {
-                    path: 'category',
-                    model: 'SubCategory'
+                    path: 'products',
+                    model: 'Product',
+                    populate: {
+                        path: 'category',
+                        model: 'SubCategory'
+                    }
                 }
             },
-            populate: {
+            {
                 path: 'categories',
                 model: 'SubCategory'
             }
-        })
+        ])
         .populate("categories")
         .exec();
 
@@ -154,21 +158,23 @@ const getHomeLayout = asyncHandler(async (req, res) => {
         active: true
     }).sort({ createdAt: -1 })
         .populate('groups')
-        .populate({
-            path: 'groups',
-            populate: {
-                path: 'products',
-                model: 'Product',
+        .populate([
+            {
+                path: 'groups',
                 populate: {
-                    path: 'category',
-                    model: 'SubCategory'
+                    path: 'products',
+                    model: 'Product',
+                    populate: {
+                        path: 'category',
+                        model: 'SubCategory'
+                    }
                 }
             },
-            populate: {
+            {
                 path: 'categories',
                 model: 'SubCategory'
             }
-        })
+        ])
         .populate("categories")
         .exec();
 
@@ -184,21 +190,23 @@ const getHomeLayout = asyncHandler(async (req, res) => {
 const getAllHomeLayout = asyncHandler(async (req, res) => {
     const allLayouts = await Home.find({}).sort({ createdAt: -1 })
         .populate('groups')
-        .populate({
-            path: 'groups',
-            populate: {
-                path: 'products',
-                model: 'Product',
+        .populate([
+            {
+                path: 'groups',
                 populate: {
-                    path: 'category',
-                    model: 'SubCategory'
+                    path: 'products',
+                    model: 'Product',
+                    populate: {
+                        path: 'category',
+                        model: 'SubCategory'
+                    }
                 }
             },
-            populate: {
+            {
                 path: 'categories',
                 model: 'SubCategory'
             }
-        })
+        ])
         .populate("categories")
         .exec();
 
