@@ -1193,7 +1193,7 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
         // if (foundOrder && foundOrder?.status != "New")
         //     return res.status(404).json({ message: `Order is ${foundOrder?.status}` });
 
-        if (foundOrder && foundOrder?.status != "Accepted")
+        if (foundOrder && foundOrder?.status != "Accepted" || foundOrder?.status != "Hold")
             return res.status(404).json({ message: `Order is ${foundOrder?.status}` });
 
         //Format the items name
@@ -1296,7 +1296,7 @@ const holdAbandonedOrder = asyncHandler(async (req, res, next) => {
     const order = await Order.findById(orderId);
     if (!order) throw new ApiError(404, 'Order not found');
     if (order && order?.status === "Hold") throw new ApiError(404, 'Order already on hold');
-    if (order && !order?.abondonedOrder) throw new ApiError(404, 'Not an abandoned order');
+    // if (order && !order?.abondonedOrder) throw new ApiError(404, 'Not an abandoned order');
 
     order.status = 'Hold';
     order.reason = reason;

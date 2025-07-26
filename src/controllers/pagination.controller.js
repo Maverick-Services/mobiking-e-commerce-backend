@@ -482,6 +482,105 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
   );
 });
 
+// export const getPaginatedPosProducts = asyncHandler(async (req, res) => {
+//   const {
+//     page = 1,
+//     limit = 10,
+//     filterBy,
+//     category,
+//     group,
+//     type,
+//     startDate,
+//     endDate,
+//   } = req.query;
+//   const searchQuery = req?.query?.searchQuery?.trim();
+
+//   const parsedPage = Math.max(1, parseInt(page));
+//   const parsedLimit = Math.min(100, Math.max(1, parseInt(limit)));
+//   const skip = (parsedPage - 1) * parsedLimit;
+
+//   const filter = {};
+
+//   // Filter by active
+//   if (filterBy !== undefined) {
+//     switch (filterBy) {
+//       case "Active":
+//         filter.active = true;
+//         break;
+
+//       case "Inactive":
+//         filter.active = false;
+//         break;
+
+//       case "InStock":
+//         filter.totalStock = { $gt: 0 }; // Changed from $gte: 1 for clarity
+//         break;
+
+//       case "OutOfStock":
+//         filter.totalStock = { $lte: 0 };
+//         break;
+
+//       case "zero":
+//         filter.totalStock = { $eq: 0 }; // More robust than just 0
+//         break;
+//     }
+//   }
+
+//   // Filter by category
+//   if (category) {
+//     filter.category = category;
+//   }
+
+//   // Filter by group
+//   if (group) {
+//     filter.groups = { $in: group };
+//   }
+
+//   // Filter by date range
+//   if (startDate && endDate) {
+//     filter.createdAt = {
+//       $gte: new Date(startDate),
+//       $lte: new Date(endDate),
+//     };
+//   }
+
+//   if (searchQuery) {
+//     const regex = new RegExp(`^${searchQuery}`, "i");
+//     filter.$or = [
+//       { name: regex },
+//       { fullName: regex },
+//     ];
+//   }
+
+//   const [products, totalCount] = await Promise.all([
+//     Product.find(filter)
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(parsedLimit)
+//       // .populate("category", "name slug")
+//       .populate("orders stock groups category")
+//       .lean(),
+
+//     Product.countDocuments(filter),
+//   ]);
+
+//   const totalPages = Math.ceil(totalCount / parsedLimit);
+
+//   return res.status(200).json(
+//     new ApiResponse(200, {
+//       products,
+//       totalCount,
+//       pagination: {
+//         page: parsedPage,
+//         limit: parsedLimit,
+//         totalPages,
+//         hasNextPage: parsedPage < totalPages,
+//         hasPrevPage: parsedPage > 1,
+//       },
+//     }, "Products fetched successfully")
+//   );
+// });
+
 export const getPaginatedUsers = asyncHandler(async (req, res) => {
   const { role, startDate, endDate, type } = req.query;
   const searchQuery = req?.query?.searchQuery?.trim();

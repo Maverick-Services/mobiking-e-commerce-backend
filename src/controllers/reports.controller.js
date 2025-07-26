@@ -7,39 +7,63 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
-function getDateRangeArray(days) {
+// function getDateRangeArray(days) {
+//   const dates = [];
+//   const today = new Date();
+//   for (let i = days - 1; i >= 0; i--) {
+//     const d = new Date(today);
+//     d.setDate(today.getDate() - i);
+//     dates.push(d.toISOString().split("T")[0]); // 'YYYY-MM-DD'
+//   }
+//   return dates;
+// }
+
+const generateDateRangeArray = (startDate, endDate) => {
   const dates = [];
-  const today = new Date();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    dates.push(d.toISOString().split("T")[0]); // 'YYYY-MM-DD'
+
+  console.log(startDate, endDate)
+  const current = new Date(Date.UTC(
+    new Date(startDate).getUTCFullYear(),
+    new Date(startDate).getUTCMonth(),
+    new Date(startDate).getUTCDate()
+  ));
+
+  const end = new Date(Date.UTC(
+    new Date(endDate).getUTCFullYear(),
+    new Date(endDate).getUTCMonth(),
+    new Date(endDate).getUTCDate()
+  ));
+
+  while (current <= end) {
+    dates.push(current.toISOString().slice(0, 10)); // YYYY-MM-DD
+    current.setUTCDate(current.getUTCDate() + 1);
   }
+
   return dates;
-}
+};
 
 // 1. Total Customers
 export const getTotalCustomers = async (req, res) => {
-    try {
-        const totalCustomers = await User.countDocuments({ role: "user" });
-        return res.status(200).json(
-            new ApiResponse(200, { totalCustomers }, "Total customers fetched")
-        );
-    } catch (err) {
-        console.error("Error fetching customers:", err);
-        return res.status(500).json(new ApiError(500, "Internal server error"));
-    }
+  try {
+    const totalCustomers = await User.countDocuments({ role: "user" });
+    return res.status(200).json(
+      new ApiResponse(200, { totalCustomers }, "Total customers fetched")
+    );
+  } catch (err) {
+    console.error("Error fetching customers:", err);
+    return res.status(500).json(new ApiError(500, "Internal server error"));
+  }
 };
 
 // 2. Total Orders
 export const getTotalOrders = async (req, res) => {
-    try {
-        const totalOrders = await Order.countDocuments();
-        return res.status(200).json(new ApiResponse(200, { totalOrders }, "Total orders fetched"));
-    } catch (err) {
-        console.error("Error fetching orders:", err);
-        return res.status(500).json(new ApiError(500, "Internal server error"));
-    }
+  try {
+    const totalOrders = await Order.countDocuments();
+    return res.status(200).json(new ApiResponse(200, { totalOrders }, "Total orders fetched"));
+  } catch (err) {
+    console.error("Error fetching orders:", err);
+    return res.status(500).json(new ApiError(500, "Internal server error"));
+  }
 };
 
 // 3. Total Sales
@@ -146,7 +170,8 @@ export const getDailyOrderCounts = asyncHandler(async (req, res) => {
     countMap[entry._id.day] = entry.count;
   });
 
-  const dates = getDateRangeArray(days);
+  // Step 3: Generate complete date range
+  const dates = generateDateRangeArray(startDate, endDate);
   const dailyCounts = dates.map(date => countMap[date] || 0);
 
   return res.status(200).json(
@@ -199,7 +224,8 @@ export const getDailyOrderSourceCounts = asyncHandler(async (req, res) => {
   }
 
   // Fill missing days
-  const dates = getDateRangeArray(days);
+  // const dates = getDateRangeArray(days);
+  const dates = generateDateRangeArray(startDate, endDate);
   const appOrders = [];
   const websiteOrders = [];
   const posOrders = [];
@@ -210,6 +236,13 @@ export const getDailyOrderSourceCounts = asyncHandler(async (req, res) => {
     websiteOrders.push(row.website);
     posOrders.push(row.pos);
   }
+
+  // for (const date of dates) {
+  //   const row = dataMap[date] || { app: 0, website: 0, pos: 0 };
+  //   appOrders.push(row.app);
+  //   websiteOrders.push(row.website);
+  //   posOrders.push(row.pos);
+  // }
 
   return res.status(200).json(
     new ApiResponse(200, { dates, appOrders, websiteOrders, posOrders }, "Order source counts by day")
@@ -225,7 +258,6 @@ export const getDailyCustomerSignupCounts = asyncHandler(async (req, res) => {
 
   const from = new Date(startDate);
   const to = new Date(new Date(endDate).setHours(23, 59, 59, 999));
-  const days = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
 
   const agg = await User.aggregate([
     {
@@ -244,14 +276,16 @@ export const getDailyCustomerSignupCounts = asyncHandler(async (req, res) => {
     }
   ]);
 
-  // Step 2: Convert to lookup
+  // Convert aggregation result to a map
   const countMap = {};
   for (const entry of agg) {
     countMap[entry._id.day] = entry.count;
   }
 
-  // Step 3: Fill missing dates
-  const dates = getDateRangeArray(days);
+  // Generate full range of dates between from and to
+  const dates = generateDateRangeArray(from, to);
+
+  // Fill counts with either value or 0
   const customerCounts = dates.map(date => countMap[date] || 0);
 
   return res.status(200).json(
@@ -290,14 +324,24 @@ export const getDailySalesInRange = asyncHandler(async (req, res) => {
     }
   ]);
 
+  // // Step 2: Map data to date → sales
+  // const salesMap = {};
+  // for (const { _id, total } of agg) {
+  //   salesMap[_id.day] = total;
+  // }
+
+  // // Step 3: Generate ordered date array and fill values
+  // const dates = getDateRangeArray(days);
+  // const salesCounts = dates.map(date => salesMap[date] || 0);
+
   // Step 2: Map data to date → sales
   const salesMap = {};
   for (const { _id, total } of agg) {
     salesMap[_id.day] = total;
   }
 
-  // Step 3: Generate ordered date array and fill values
-  const dates = getDateRangeArray(days);
+  // Step 3: Generate full range of dates and map to sales
+  const dates = generateDateRangeArray(startDate, endDate);
   const salesCounts = dates.map(date => salesMap[date] || 0);
 
   return res.status(200).json(
