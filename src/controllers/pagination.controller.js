@@ -4,7 +4,7 @@ import { Order } from "../models/order.model.js";
 import { Product } from "../models/product.model.js";
 import { User } from "../models/user.model.js";
 import { Query } from "../models/query.model.js";
-// import mongoose from "mongoose";
+import { Coupon } from "../models/coupon.model.js";
 
 const getSalesData = async (salesFilter) => {
 
@@ -784,5 +784,63 @@ export const getPaginatedQueries = asyncHandler(async (req, res) => {
         hasPrevPage: parsedPage > 1,
       },
     }, "Queries fetched successfully")
+  );
+});
+
+export const getPaginatedCoupons = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    startDate,
+    endDate,
+  } = req.query;
+
+  const searchQuery = req?.query?.searchQuery?.trim();
+
+  const parsedPage = Math.max(1, parseInt(page));
+  const parsedLimit = Math.min(100, Math.max(1, parseInt(limit)));
+  const skip = (parsedPage - 1) * parsedLimit;
+
+  const filter = {};
+
+  // Date range filter
+  if (startDate && endDate) {
+    filter.createdAt = {
+      $gte: new Date(startDate),
+      $lte: new Date(endDate),
+    };
+  }
+
+  // Search filter (code only, you can add more fields)
+  if (searchQuery) {
+    const regex = new RegExp(searchQuery, "i");
+    filter.$or = [
+      { code: regex }
+    ];
+  }
+
+  const [coupons, totalCount] = await Promise.all([
+    Coupon.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parsedLimit)
+      .lean(),
+    Coupon.countDocuments(filter),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / parsedLimit);
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      coupons,
+      totalCount,
+      pagination: {
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages,
+        hasNextPage: parsedPage < totalPages,
+        hasPrevPage: parsedPage > 1,
+      },
+    }, "Coupons fetched successfully")
   );
 });
