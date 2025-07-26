@@ -35,6 +35,7 @@ import reportRouter from './routes/report.routes.js'
 import notificationRouter from './routes/notification.routes.js'
 import policyRouter from './routes/policy.routes.js'
 import paymentRouter from './routes/payment.routes.js'
+import couponRouter from './routes/coupon.routes.js'
 import { startAbandonedCartScheduler } from './scheduler/abandonedCart.scheduler.js';
 import { paymentLinkWebhook } from "./controllers/order.controller.js"
 
@@ -52,6 +53,7 @@ app.use("/api/v1/reports", reportRouter)
 app.use("/api/v1/notifications", notificationRouter)
 app.use("/api/v1/policy", policyRouter)
 app.use("/api/v1/payment", paymentRouter)
+app.use("/api/v1/coupon", couponRouter)
 app.use("/api/v1/webhook/payment", paymentLinkWebhook)
 
 app.get('/', (req, res) => {
