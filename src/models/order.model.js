@@ -134,6 +134,10 @@ const orderSchema = new mongoose.Schema(
         },
 
         /****************  PRICING  *****************/
+        coupon: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Coupon",
+        },
         orderAmount: { type: Number, required: true },
         deliveryCharge: { type: Number, default: 0 },
         discount: { type: Number, default: 0 },
