@@ -602,13 +602,24 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
         //     orderAmount, subtotal, deliveryCharge,
         //     // !gst || 
         //     address);
+
+        console.log(userId, cartId, name, phoneNo,
+            orderAmount, subtotal, deliveryCharge > 0,
+            // !gst || 
+            address)
         if (
             !userId || !cartId || !name || !phoneNo ||
-            !orderAmount || !subtotal || deliveryCharge > 0 ||
+            !orderAmount || !subtotal ||
             // !gst || 
             !address
         ) {
             throw new ApiError(400, 'Required order details missing.');
+        }
+
+        if (
+            !deliveryCharge || deliveryCharge < 0
+        ) {
+            throw new ApiError(400, 'Delivery charge cannot be negative.');
         }
 
         const cart = await Cart.findOne({ _id: cartId }).populate('items.productId');

@@ -179,15 +179,15 @@ const orderSchema = new mongoose.Schema(
         items: [itemsSchema],
         length: {
             type: Number,
-            default: 10
+            default: 19
         },
         breadth: {
             type: Number,
-            default: 10
+            default: 16
         },
         height: {
             type: Number,
-            default: 10
+            default: 6
         },
         weight: {
             type: Number,
