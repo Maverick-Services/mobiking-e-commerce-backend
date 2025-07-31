@@ -430,6 +430,7 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
         case "DELIVERED":
             if (order.status !== "Delivered") {
                 upd.status = "Delivered";
+                upd.paymentStatus = "Paid";
                 upd.deliveredAt = nowISO;
             }
             break;
