@@ -226,6 +226,7 @@ const createManualOrder = asyncHandler(async (req, res) => {
         const {
             userId,
             name, email, phoneNo,
+            comments,
             orderAmount,
             gst,
             discount = 0,
@@ -259,6 +260,7 @@ const createManualOrder = asyncHandler(async (req, res) => {
             name: name.trim(),
             phoneNo: phoneNo.trim(),
             email: email?.trim(),
+            comments: comments?.trim(),
             method,
             type: 'Regular',
             status: 'New',
