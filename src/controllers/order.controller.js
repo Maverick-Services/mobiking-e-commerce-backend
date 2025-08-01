@@ -14,6 +14,7 @@ import { checkPickupStatus } from './shiprocket.controller.js';
 import { Address } from '../models/address.model.js';
 import { isNumber } from 'razorpay/dist/utils/razorpay-utils.js';
 import { PaymentLink } from '../models/payment_link.model.js';
+import { Coupon } from '../models/coupon.model.js';
 
 const razorpayConfig = () => {
     const razorpay = new Razorpay({
@@ -374,7 +375,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
     const session = await mongoose.startSession();
 
     try {
-        const {
+        let {
             userId, cartId,
             name, email, phoneNo,
             orderAmount,
@@ -389,6 +390,16 @@ const createCodOrder = asyncHandler(async (req, res) => {
             method = 'COD',
             isAppOrder
         } = req.body;
+
+        if (!coupon) {
+            coupon = null
+            console.log("Coupon: ", coupon)
+        } else {
+            const findCoupon = await Coupon.findById(coupon);
+            if (!findCoupon) {
+                throw new Error(404, "Coupon not found");
+            }
+        }
 
         if (
             !userId || !address || !cartId ||
@@ -595,7 +606,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
     const session = await mongoose.startSession();
 
     try {
-        const {
+        let {
             userId, cartId,
             name, email, phoneNo,
             orderAmount,
@@ -615,10 +626,16 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
         //     // !gst || 
         //     address);
 
-        console.log(userId, cartId, name, phoneNo,
-            orderAmount, subtotal, deliveryCharge > 0,
-            // !gst || 
-            address)
+        if (!coupon) {
+            coupon = null
+            console.log("Coupon: ", coupon)
+        } else {
+            const findCoupon = await Coupon.findById(coupon);
+            if (!findCoupon) {
+                throw new Error(404, "Coupon not found");
+            }
+        }
+
         if (
             !userId || !cartId || !name || !phoneNo ||
             !orderAmount || !subtotal ||
