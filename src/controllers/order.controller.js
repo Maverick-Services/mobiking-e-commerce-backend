@@ -381,7 +381,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
             discount,
             coupon,
             comments,
-            deliveryCharge,
+            deliveryCharge = 0,
             gst,
             subtotal,
             address,
@@ -393,11 +393,16 @@ const createCodOrder = asyncHandler(async (req, res) => {
         if (
             !userId || !address || !cartId ||
             !name || !phoneNo ||
-            !orderAmount || deliveryCharge < 0 ||
+            !orderAmount ||
             // !gst || 
             !subtotal || !method
         ) {
             throw new ApiError(400, 'Required details not found.');
+        }
+        if (
+            deliveryCharge == undefined || deliveryCharge == null || deliveryCharge < 0
+        ) {
+            throw new ApiError(400, 'Delivery charge cannot be negative.');
         }
 
         if (orderAmount > 5000)
@@ -597,7 +602,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             coupon,
             comments,
             discount,
-            deliveryCharge,
+            deliveryCharge = 0,
             gst,
             subtotal,
             address,
@@ -624,7 +629,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
         }
 
         if (
-            !deliveryCharge || deliveryCharge < 0
+            deliveryCharge == undefined || deliveryCharge == null || deliveryCharge < 0
         ) {
             throw new ApiError(400, 'Delivery charge cannot be negative.');
         }
