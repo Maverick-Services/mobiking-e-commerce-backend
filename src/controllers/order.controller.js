@@ -1120,6 +1120,10 @@ const verifyPayment = async (req, res) => {
                     { session }
                 );
 
+                cart.items = [];
+                cart.totalCartValue = 0;
+                await cart.save({ session });
+
                 updatedUser = await User.findByIdAndUpdate(
                     order.userId,
                     { $push: { orders: order._id } },
@@ -1139,11 +1143,7 @@ const verifyPayment = async (req, res) => {
                     .populate("wishlist")
                     .populate("address")
                     .populate("orders")
-                    .exec();;
-
-                cart.items = [];
-                cart.totalCartValue = 0;
-                await cart.save({ session });
+                    .exec();
             });
 
             return res.status(200).json(
