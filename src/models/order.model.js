@@ -45,6 +45,7 @@ const orderSchema = new mongoose.Schema(
             default: "New"
         },
         reason: { type: String },
+        comments: { type: String },
         shippingStatus: {
             type: String,
             // enum: [

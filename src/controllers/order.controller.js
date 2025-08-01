@@ -94,6 +94,7 @@ const createPosOrder = asyncHandler(async (req, res) => {
             name, phoneNo,
             orderAmount,
             gst,
+            comments,
             discount,
             subtotal,
             method = 'Cash',
@@ -125,7 +126,8 @@ const createPosOrder = asyncHandler(async (req, res) => {
             discount,
             gst,
             subtotal,
-            items
+            items,
+            comments
         });
 
         let updatedUser = null;
@@ -376,6 +378,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
             orderAmount,
             discount,
             coupon,
+            comments,
             deliveryCharge,
             gst,
             subtotal,
@@ -428,6 +431,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
             email: email.trim(),
             phoneNo: phoneNo.trim(),
             // address,
+            comments,
             addressId,
             method,
             type: 'Regular',
@@ -589,6 +593,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             name, email, phoneNo,
             orderAmount,
             coupon,
+            comments,
             discount,
             deliveryCharge,
             gst,
@@ -657,6 +662,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             email: email.trim(),
             phoneNo: phoneNo.trim(),
             // address,
+            comments,
             addressId,
             method: 'Online',
             type: 'Regular',
@@ -1787,6 +1793,7 @@ const preShiprocketCancel = async (req, res, next) => {
     // Stage: accepted locally but no Shiprocket order
     if (!order.shipmentId) {
         order.status = 'Cancelled';
+        order.reason = reason;
         const updatedRequestArr = updateRequestStatus(order?.requests, reason);
         console.log("Request Array:", updatedRequestArr);
         order.requests = updatedRequestArr;
@@ -1809,6 +1816,7 @@ const createdCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
+        order.reason = reason;
         const updatedRequestArr = updateRequestStatus(order?.requests, req?.reason);
         console.log("Request Array:", updatedRequestArr);
         order.requests = updatedRequestArr;
@@ -1834,6 +1842,7 @@ const awbCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
+        order.reason = reason;
         const updatedRequestArr = updateRequestStatus(order?.requests, req?.reason);
         console.log("Request Array:", updatedRequestArr);
         order.requests = updatedRequestArr;
@@ -1872,6 +1881,7 @@ const postPickupCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req?.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
+        order.reason = reason;
         const updatedRequestArr = updateRequestStatus(order?.requests, req?.reason);
         console.log("Request Array:", updatedRequestArr);
         order.requests = updatedRequestArr;
@@ -1895,6 +1905,7 @@ const inTransitCancel = async (req, res, next) => {
     const inTransitStates = ['Shipped', 'In Transit', 'Picked Up'];
     if (inTransitStates.includes(order.shippingStatus)) {
         order.status = 'Cancelled';
+        order.reason = reason;
         await order.save();
         // stock to be adjusted on return processing
         return res.json({ message: 'Order marked cancelled; stock will restore upon return' });
