@@ -2,6 +2,7 @@ import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import {
     createProduct, deleteProduct, editProduct,
+    getAllActiveInstockProducts,
     getAllProducts, getProductById, getProductBySlug,
     getProductsByCategory, getProductsByGroup,
     updateProductStatus,
@@ -18,6 +19,7 @@ router.route("/createProduct").post(verifyJWT, createProduct);
 router.route("/status/:_id").put(verifyJWT, updateProductStatus);
 router.route("/:_id").put(verifyJWT, editProduct);
 router.route("/:_id").delete(verifyJWT, deleteProduct);
+router.route("/available").get(getAllActiveInstockProducts);
 router.route("/").get(getAllProducts);
 router.route("/category/:categoryId").get(getProductsByCategory);
 router.route("/group/:groupId").get(getProductsByGroup);

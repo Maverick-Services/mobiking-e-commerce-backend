@@ -398,6 +398,20 @@ const getAllProducts = asyncHandler(async (req, res) => {
     )
 });
 
+const getAllActiveInstockProducts = asyncHandler(async (req, res) => {
+    const allProducts = await Product.find({
+        active: true, totalStock: { $gt: 0 }
+    }).populate("orders stock groups category").exec();
+
+    if (!allProducts) {
+        throw new ApiError(409, "Could not find products");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, allProducts, "Products fetched Successfully")
+    )
+});
+
 const markProductInGroup = asyncHandler(async (req, res) => { });
 const deleteProduct = asyncHandler(async (req, res) => { });
 const getProductsByCategory = asyncHandler(async (req, res) => { });
@@ -412,6 +426,7 @@ export {
     markProductInGroup,
     deleteProduct,
     getAllProducts,
+    getAllActiveInstockProducts,
     getProductsByCategory,
     getProductsByGroup,
     getProductById,
