@@ -71,12 +71,14 @@ const createHome = asyncHandler(async (req, res) => {
 });
 
 const editHomeLayout = asyncHandler(async (req, res) => {
-    let {
-        categories,
-        groups,
-        active,
-        banners
-    } = req.body;
+    // let {
+    //     categories,
+    //     groups,
+    //     active,
+    //     banners
+    // } = req.body;
+
+    let updates = req?.body;
 
     const homeId = req.params?._id;
 
@@ -115,10 +117,11 @@ const editHomeLayout = asyncHandler(async (req, res) => {
     const updatedHomeLayout = await Home.findByIdAndUpdate(
         homeId,
         {
-            active: active ? active : foundHomeLayout?.active,
-            banners: banners ? banners : foundHomeLayout?.banners,
-            groups: groups || foundHomeLayout?.groups || [],
-            categories: categories || foundHomeLayout?.categories || []
+            // active: active ? active : foundHomeLayout?.active,
+            // banners: banners ? banners : foundHomeLayout?.banners,
+            // groups: groups || foundHomeLayout?.groups || [],
+            // categories: categories || foundHomeLayout?.categories || []
+            ...updates
         },
         { new: true }
     )
