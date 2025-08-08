@@ -112,6 +112,7 @@ const createPosOrder = asyncHandler(async (req, res) => {
             throw new ApiError(400, 'Required details not found.');
         }
 
+        const nowIso = new Date().toISOString();
         const paymentDate = (method == "Cash" || method == "Online") ? new Date() : null;
         const newOrderDoc = new Order({
             userId,
@@ -120,6 +121,7 @@ const createPosOrder = asyncHandler(async (req, res) => {
             method,
             type: 'Pos',
             status: 'Delivered',
+            deliveredAt: nowIso,
             paymentStatus: method == 'Cash' ? 'Paid' : 'Pending',
             paymentDate,
             orderId: uuidv4().split('-')[0].toUpperCase(),

@@ -40,15 +40,31 @@ export const raiseQueryByUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(user._id, {
         $push: { queries: savedQuery._id }
     });
-    
+
     // 2️⃣ Push query ID into order's `query'
-    await Order.findByIdAndUpdate(orderId, {
-        query: savedQuery._id
-    });
+    const updatedOrder = await Order.findByIdAndUpdate(
+        orderId,
+        {
+            query: savedQuery._id
+        },
+        { new: true }
+    ).populate({ path: "userId", select: "-password -refreshToken" })
+        .populate({
+            path: "items.productId",
+            model: "Product",
+            populate: { path: "category", model: "SubCategory" },
+        })
+        .populate("addressId")
+        .exec();;
+
+    if (!updatedOrder) {
+        throw new ApiError(500, "Could not attach query to order");
+    }
+
 
     // 3️⃣ Return response
     return res.status(201).json(
-        new ApiResponse(201, savedQuery, "Query raised successfully")
+        new ApiResponse(201, { updatedOrder, savedQuery }, "Query raised successfully")
     );
 });
 
