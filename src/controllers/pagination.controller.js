@@ -6,165 +6,380 @@ import { User } from "../models/user.model.js";
 import { Query } from "../models/query.model.js";
 import { Coupon } from "../models/coupon.model.js";
 
-const getSalesData = async (salesFilter) => {
+// const getSalesData = async (salesFilter) => {
+
+//   const [
+//     allOrder, websiteOrder, appOrder, posOrder,
+//     codOrder, onlineOrder, cashOrder, upiOrder
+//   ] = await Promise.all([
+
+//     // Total Order Sales
+//     Order.aggregate([
+//       {
+//         $match: salesFilter
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           count: { $sum: 1 },
+//           sales: { $sum: "$orderAmount" }
+//         }
+//       }
+//     ]
+//       , { allowDiskUse: true }
+//     ),
+
+//     // Website Order Sales
+//     Order.aggregate([
+//       {
+//         $match: {
+//           ...salesFilter,
+//           type: "Regular",
+//           isAppOrder: false
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           count: { $sum: 1 },
+//           sales: { $sum: "$orderAmount" }
+//         }
+//       }
+//     ]
+//       , { allowDiskUse: true }
+//     ),
+
+//     // App Order Sales
+//     Order.aggregate([
+//       {
+//         $match: {
+//           ...salesFilter,
+//           type: "Regular",
+//           isAppOrder: true
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           count: { $sum: 1 },
+//           sales: { $sum: "$orderAmount" }
+//         }
+//       }
+//     ]
+//       , { allowDiskUse: true }
+//     ),
+
+//     // Pos Order Sales
+//     Order.aggregate([
+//       {
+//         $match: {
+//           ...salesFilter,
+//           type: "Pos",
+//           // isAppOrder: false
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           count: { $sum: 1 },
+//           sales: { $sum: "$orderAmount" }
+//         }
+//       }
+//     ]
+//       , { allowDiskUse: true }
+//     ),
+
+//     // Cod Order Sales
+//     Order.aggregate([
+//       {
+//         $match: {
+//           ...salesFilter,
+//           method: "COD"
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           count: { $sum: 1 },
+//           sales: { $sum: "$orderAmount" }
+//         }
+//       }
+//     ]
+//       , { allowDiskUse: true }
+//     ),
+
+//     // Online Order Sales
+//     Order.aggregate([
+//       {
+//         $match: {
+//           ...salesFilter,
+//           method: "Online"
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           count: { $sum: 1 },
+//           sales: { $sum: "$orderAmount" }
+//         }
+//       }
+//     ]
+//       , { allowDiskUse: true }
+//     ),
+
+//     // Cash Order Sales
+//     Order.aggregate([
+//       {
+//         $match: {
+//           ...salesFilter,
+//           method: "Cash"
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           count: { $sum: 1 },
+//           sales: { $sum: "$orderAmount" }
+//         }
+//       }
+//     ]
+//       , { allowDiskUse: true }
+//     ),
+
+//     // UPI Order Sales
+//     Order.aggregate([
+//       {
+//         $match: {
+//           ...salesFilter,
+//           method: "UPI"
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           count: { $sum: 1 },
+//           sales: { $sum: "$orderAmount" }
+//         }
+//       }
+//     ]
+//       , { allowDiskUse: true }
+//     ),
+
+//   ]);
+
+//   const salesData = {
+//     allOrder: allOrder[0],
+//     websiteOrder: websiteOrder[0],
+//     appOrder: appOrder[0],
+//     posOrder: posOrder[0],
+//     codOrder: codOrder[0],
+//     onlineOrder: onlineOrder[0],
+//     cashOrder: cashOrder[0],
+//     upiOrder: upiOrder[0]
+//   }
+
+//   return salesData;
+// }
+
+// export const getPaginatedOrders = asyncHandler(async (req, res) => {
+//   const status = req?.query?.status;
+//   const type = req?.query?.type;
+//   const startDate = req?.query?.startDate;
+//   const endDate = req?.query?.endDate;
+//   const searchQuery = req?.query?.searchQuery?.trim();
+//   const queryParameter = req?.query?.queryParameter;
+
+//   const page = Math.max(1, parseInt(req?.query?.page) || 1);
+//   const limit = Math.min(100, Math.max(1, parseInt(req?.query?.limit) || 10));
+//   const skip = (page - 1) * limit;
+
+//   const filter = {};
+//   const searchFilter = {};
+//   const countFilter = {};
+//   const salesFilter = {};
+
+//   filter.abondonedOrder = false;
+//   countFilter.abondonedOrder = false;
+//   salesFilter.abondonedOrder = false;
+
+//   // Filter by status and type
+//   if (status && status !== "all") filter.status = status;
+//   if (type && type !== "all") {
+//     switch (type) {
+//       case "pos":
+//         filter.type = "Pos";
+//         break;
+//       case "web":
+//         filter.type = "Regular";
+//         filter.isAppOrder = false;
+//         break;
+//       case "app":
+//         filter.type = "Regular";
+//         filter.isAppOrder = true;
+//         break;
+//       case "abandoned":
+//         filter.abondonedOrder = true;
+//         break;
+//     }
+//   }
+
+//   // Filter by date range
+//   if (startDate && endDate) {
+//     const start = new Date(startDate);
+//     const end = new Date(endDate);
+//     start.setHours(0, 0, 0, 0);
+//     end.setHours(23, 59, 59, 999);
+//     filter.createdAt = { $gte: start, $lte: end };
+//     countFilter.createdAt = { $gte: start, $lte: end };
+//     salesFilter.createdAt = { $gte: start, $lte: end };
+//   }
+
+//   // Filter by customer or order
+//   if (searchQuery && queryParameter === "customer") {
+//     const regex = new RegExp(searchQuery, "i");
+//     searchFilter.$or = [
+//       { name: regex },
+//       { email: regex },
+//       { phoneNo: regex }
+//     ];
+//   } else if (searchQuery && queryParameter === "order") {
+//     searchFilter.orderId = new RegExp(`^${searchQuery}`, "i");
+//   }
+
+//   // Order Sales Card Data
+//   salesFilter.status = {
+//     $nin: ["Rejected", "Cancelled", "Returned", "Replaced", "Hold"]
+//   };
+
+//   const salesData = await getSalesData(salesFilter);
+
+//   // Parallel counts to reduce query time
+//   const [
+//     totalCount,
+//     newCount, acceptedCount, rejectedCount, holdCount, shippedCount, cancelledCount, deliveredCount,
+//     allOrderCount, posOrderCount, websiteOrderCount, appOrderCount, abandonedOrderCount
+//   ] = await Promise.all([
+//     Order.countDocuments(filter),
+//     Order.countDocuments({ ...filter, status: "New" }),
+//     Order.countDocuments({ ...filter, status: "Accepted" }),
+//     Order.countDocuments({ ...filter, status: "Rejected" }),
+//     Order.countDocuments({ ...filter, status: "Hold" }),
+//     Order.countDocuments({ ...filter, status: "Shipped" }),
+//     Order.countDocuments({ ...filter, status: "Cancelled" }),
+//     Order.countDocuments({ ...filter, status: "Delivered" }),
+//     Order.countDocuments(countFilter),
+//     Order.countDocuments({ ...countFilter, type: "Pos" }),
+//     Order.countDocuments({ ...countFilter, type: "Regular", isAppOrder: false }),
+//     Order.countDocuments({ ...countFilter, type: "Regular", isAppOrder: true }),
+//     Order.countDocuments({ ...countFilter, abondonedOrder: true }),
+//   ]);
+
+//   const totalPages = Math.ceil(totalCount / limit);
+
+//   // Fetch orders in streaming-safe way (only current page)
+//   const orders = await Order.find({ ...filter, ...searchFilter })
+//     .sort({ createdAt: -1 })
+//     .skip(skip)
+//     .limit(limit)
+//     .populate({
+//       path: 'userId',
+//       model: "User",
+//       select: "name email phoneNo",
+//       populate: { path: "orders", model: "Order", select: "status" }
+//     })
+//     .populate({
+//       path: "items.productId",
+//       model: "Product",
+//       select: "fullName"
+//       // populate: { path: "category", model: "SubCategory" }
+//     })
+//     .lean()
+//     .cursor() // this avoids loading full dataset
+//     .toArray(); // safely materializes only this page
+
+//   return res.status(200).json(
+//     new ApiResponse(200, {
+//       orders,
+//       totalCount,
+//       salesData,
+//       newCount, acceptedCount, rejectedCount, holdCount,
+//       shippedCount, cancelledCount,
+//       deliveredCount,
+//       allOrderCount, posOrderCount,
+//       websiteOrderCount, appOrderCount,
+//       abandonedOrderCount,
+//       pagination: {
+//         page,
+//         limit,
+//         totalPages,
+//         hasNextPage: page < totalPages,
+//         hasPrevPage: page > 1,
+//       },
+//     }, "Orders fetched successfully")
+//   );
+// });
+
+export const getSalesDataController = asyncHandler(async (req, res) => {
+  const startDate = req?.query?.startDate;
+  const endDate = req?.query?.endDate;
+
+  const salesFilter = { abondonedOrder: false };
+
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    salesFilter.createdAt = { $gte: start, $lte: end };
+  }
+
+  salesFilter.status = {
+    $nin: ["Rejected", "Cancelled", "Returned", "Replaced", "Hold"]
+  };
 
   const [
     allOrder, websiteOrder, appOrder, posOrder,
     codOrder, onlineOrder, cashOrder, upiOrder
   ] = await Promise.all([
-
-    // Total Order Sales
     Order.aggregate([
-      {
-        $match: salesFilter
-      },
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          sales: { $sum: "$orderAmount" }
-        }
-      }
-    ]
-      // , { allowDiskUse: true }
-    ),
+      { $match: salesFilter },
+      { $group: { _id: null, count: { $sum: 1 }, sales: { $sum: "$orderAmount" } } }
+    ], { allowDiskUse: true }),
 
-    // Website Order Sales
     Order.aggregate([
-      {
-        $match: {
-          ...salesFilter,
-          type: "Regular",
-          isAppOrder: false
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          sales: { $sum: "$orderAmount" }
-        }
-      }
-    ]
-      // , { allowDiskUse: true }
-    ),
+      { $match: { ...salesFilter, type: "Regular", isAppOrder: false } },
+      { $group: { _id: null, count: { $sum: 1 }, sales: { $sum: "$orderAmount" } } }
+    ], { allowDiskUse: true }),
 
-    // App Order Sales
     Order.aggregate([
-      {
-        $match: {
-          ...salesFilter,
-          type: "Regular",
-          isAppOrder: true
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          sales: { $sum: "$orderAmount" }
-        }
-      }
-    ]
-      // , { allowDiskUse: true }
-    ),
+      { $match: { ...salesFilter, type: "Regular", isAppOrder: true } },
+      { $group: { _id: null, count: { $sum: 1 }, sales: { $sum: "$orderAmount" } } }
+    ], { allowDiskUse: true }),
 
-    // Pos Order Sales
     Order.aggregate([
-      {
-        $match: {
-          ...salesFilter,
-          type: "Pos",
-          // isAppOrder: false
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          sales: { $sum: "$orderAmount" }
-        }
-      }
-    ]
-      // , { allowDiskUse: true }
-    ),
+      { $match: { ...salesFilter, type: "Pos" } },
+      { $group: { _id: null, count: { $sum: 1 }, sales: { $sum: "$orderAmount" } } }
+    ], { allowDiskUse: true }),
 
-    // Cod Order Sales
     Order.aggregate([
-      {
-        $match: {
-          ...salesFilter,
-          method: "COD"
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          sales: { $sum: "$orderAmount" }
-        }
-      }
-    ]
-      // , { allowDiskUse: true }
-    ),
+      { $match: { ...salesFilter, method: "COD" } },
+      { $group: { _id: null, count: { $sum: 1 }, sales: { $sum: "$orderAmount" } } }
+    ], { allowDiskUse: true }),
 
-    // Online Order Sales
     Order.aggregate([
-      {
-        $match: {
-          ...salesFilter,
-          method: "Online"
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          sales: { $sum: "$orderAmount" }
-        }
-      }
-    ]
-      // , { allowDiskUse: true }
-    ),
+      { $match: { ...salesFilter, method: "Online" } },
+      { $group: { _id: null, count: { $sum: 1 }, sales: { $sum: "$orderAmount" } } }
+    ], { allowDiskUse: true }),
 
-    // Cash Order Sales
     Order.aggregate([
-      {
-        $match: {
-          ...salesFilter,
-          method: "Cash"
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          sales: { $sum: "$orderAmount" }
-        }
-      }
-    ]
-      // , { allowDiskUse: true }
-    ),
+      { $match: { ...salesFilter, method: "Cash" } },
+      { $group: { _id: null, count: { $sum: 1 }, sales: { $sum: "$orderAmount" } } }
+    ], { allowDiskUse: true }),
 
-    // UPI Order Sales
     Order.aggregate([
-      {
-        $match: {
-          ...salesFilter,
-          method: "UPI"
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          sales: { $sum: "$orderAmount" }
-        }
-      }
-    ]
-      // , { allowDiskUse: true }
-    ),
-
+      { $match: { ...salesFilter, method: "UPI" } },
+      { $group: { _id: null, count: { $sum: 1 }, sales: { $sum: "$orderAmount" } } }
+    ], { allowDiskUse: true }),
   ]);
 
   const salesData = {
@@ -176,11 +391,14 @@ const getSalesData = async (salesFilter) => {
     onlineOrder: onlineOrder[0],
     cashOrder: cashOrder[0],
     upiOrder: upiOrder[0]
-  }
+  };
 
-  return salesData;
-}
+  return res.status(200).json(new ApiResponse(200, salesData, "Sales data fetched successfully"));
+});
 
+/**
+ * PAGINATED ORDERS CONTROLLER
+ */
 export const getPaginatedOrders = asyncHandler(async (req, res) => {
   const status = req?.query?.status;
   const type = req?.query?.type;
@@ -196,57 +414,40 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
   const filter = {};
   const searchFilter = {};
   const countFilter = {};
-  const salesFilter = {};
 
   filter.abondonedOrder = false;
   countFilter.abondonedOrder = false;
-  salesFilter.abondonedOrder = false;
 
-  // Filter by status and type
   if (status && status !== "all") filter.status = status;
+
   if (type && type !== "all") {
     switch (type) {
       case "pos":
-        filter.type = "Pos"
+        filter.type = "Pos";
         break;
-
       case "web":
-        filter.type = "Regular"
-        filter.isAppOrder = false
+        filter.type = "Regular";
+        filter.isAppOrder = false;
         break;
-
       case "app":
-        filter.type = "Regular"
-        filter.isAppOrder = true
+        filter.type = "Regular";
+        filter.isAppOrder = true;
         break;
-
       case "abandoned":
-        filter.abondonedOrder = true
+        filter.abondonedOrder = true;
         break;
     }
   }
 
-  // Filter by date range
-  // if (startDate && endDate) {
-  //   const start = new Date(startDate);
-  //   const end = new Date(endDate);
-  //   end.setHours(23, 59, 59, 999);
-  //   filter.createdAt = { $gte: start, $lte: end };
-  //   countFilter.createdAt = { $gte: start, $lte: end };
-  //   salesFilter.createdAt = { $gte: start, $lte: end };
-  // }
-
   if (startDate && endDate) {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    start.setHours(0, 0, 0, 0); // ADD THIS
+    start.setHours(0, 0, 0, 0);
     end.setHours(23, 59, 59, 999);
     filter.createdAt = { $gte: start, $lte: end };
     countFilter.createdAt = { $gte: start, $lte: end };
-    salesFilter.createdAt = { $gte: start, $lte: end };
   }
 
-  // Filter by customer or order
   if (searchQuery && queryParameter === "customer") {
     const regex = new RegExp(searchQuery, "i");
     searchFilter.$or = [
@@ -258,42 +459,11 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     searchFilter.orderId = new RegExp(`^${searchQuery}`, "i");
   }
 
-  //Order Sales Card Data
-  salesFilter.status = {
-    $nin: ["Rejected", "Cancelled", "Returned", "Replaced", "Hold"]
-  }
-
-  const salesData = await getSalesData(salesFilter);
-  // console.log("here")
-  // Order Table Data
   const [
-    orders,
     totalCount,
     newCount, acceptedCount, rejectedCount, holdCount, shippedCount, cancelledCount, deliveredCount,
     allOrderCount, posOrderCount, websiteOrderCount, appOrderCount, abandonedOrderCount
   ] = await Promise.all([
-    Order.find({ ...filter, ...searchFilter })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate({
-        path: 'userId',
-        model: "User",
-        select: "-password -refreshToken",
-        populate: {
-          path: "orders",
-          model: "Order"
-        }
-      })
-      .populate({
-        path: "items.productId",
-        model: "Product",
-        populate: {
-          path: "category",
-          model: "SubCategory"
-        }
-      })
-      .lean(),
     Order.countDocuments(filter),
     Order.countDocuments({ ...filter, status: "New" }),
     Order.countDocuments({ ...filter, status: "Accepted" }),
@@ -311,19 +481,30 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
 
   const totalPages = Math.ceil(totalCount / limit);
 
-  // console.log("Orders: ", orders)
+  const orders = await Order.find({ ...filter, ...searchFilter })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .populate({
+      path: 'userId',
+      model: "User",
+      select: "name email phoneNo",
+    })
+    .populate({
+      path: "items.productId",
+      model: "Product",
+      select: "fullName"
+    })
+    .lean();
 
   return res.status(200).json(
     new ApiResponse(200, {
       orders,
       totalCount,
-      salesData,
       newCount, acceptedCount, rejectedCount, holdCount,
-      shippedCount, cancelledCount,
-      deliveredCount,
-      allOrderCount, posOrderCount,
-      websiteOrderCount, appOrderCount,
-      abandonedOrderCount,
+      shippedCount, cancelledCount, deliveredCount,
+      allOrderCount, posOrderCount, websiteOrderCount,
+      appOrderCount, abandonedOrderCount,
       pagination: {
         page,
         limit,
@@ -488,7 +669,14 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
       .skip(skip)
       .limit(parsedLimit)
       // .populate("category", "name slug")
-      .populate("orders stock groups category")
+      // .populate("orders stock groups category")
+      .populate("stock category")
+      .populate({
+        path: "category",
+        model: "SubCategory",
+        select: "name"
+      })
+      .select("-orders")
       .lean(),
 
     Product.countDocuments(filter),

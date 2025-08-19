@@ -1258,11 +1258,12 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
             };
         });
 
+        console.log(process.env.WARHOUSE);
         //Create the shiprocket payload for order creation
         const payload = {
             order_id: foundOrder._id,
             order_date: foundOrder.createdAt || new Date().toISOString().split("T")[0],
-            pickup_location: "Work",
+            pickup_location: process.env.WARHOUSE || "Work",
             billing_customer_name: foundOrder.name,
             billing_last_name: "",
             billing_address: foundOrder?.address || "Rohini Delhi",
@@ -1395,21 +1396,36 @@ const getOrdersByRequestType = asyncHandler(async (req, res) => {
             .populate({
                 path: 'userId',
                 model: "User",
-                select: "-password -refreshToken",
-                populate: {
-                    path: "orders",
-                    model: "Order"
-                }
+                select: "name email phoneNo",
+                populate: { path: "orders", model: "Order", select: "status" }
             })
             .populate({
                 path: "items.productId",
                 model: "Product",
-                populate: {
-                    path: "category",
-                    model: "SubCategory"
-                }
+                select: "fullName"
+                // populate: { path: "category", model: "SubCategory" }
             })
-            .lean(),
+            .lean()
+            .cursor() // this avoids loading full dataset
+            .toArray(), // safely materializes only this page
+        // .populate({
+        //     path: 'userId',
+        //     model: "User",
+        //     select: "-password -refreshToken",
+        //     populate: {
+        //         path: "orders",
+        //         model: "Order"
+        //     }
+        // })
+        // .populate({
+        //     path: "items.productId",
+        //     model: "Product",
+        //     populate: {
+        //         path: "category",
+        //         model: "SubCategory"
+        //     }
+        // })
+        // .lean(),
         Order.countDocuments(filter)
     ]);
 
@@ -1568,52 +1584,190 @@ const getFilteredOrdersByDate = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, orders, "Orders fetched successfully"));
 });
 
+// const getOrdersByDate = asyncHandler(async (req, res) => {
+//     const { startDate, endDate } = req.query;
+
+//     /* ------------------------- 1. Validate Inputs ------------------------- */
+//     if (!startDate || !endDate) {
+//         throw new ApiError(400, "Start date and end date are required");
+//     }
+
+//     const from = new Date(startDate);
+//     const to = new Date(new Date(endDate).setHours(23, 59, 59, 999)); // End of the day
+
+//     if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+//         throw new ApiError(400, "Invalid date format provided");
+//     }
+
+//     /* ---------------------- 2. Fetch Orders in Range ---------------------- */
+//     const orders = await Order.find({
+//         createdAt: {
+//             $gte: from,
+//             $lte: to,
+//         },
+//     })
+//         .sort({ createdAt: 1 })
+//         .populate({
+//             path: 'userId',
+//             model: "User",
+//             select: "_id",
+//             // select: "-password -refreshToken",
+//             // populate: {
+//             //     path: "orders",  // This is the key part
+//             //     model: "Order"
+//             // }
+//         })
+//         .populate({
+//             path: "items.productId",
+//             model: "Product",
+//             select: "_id name",
+//             // populate: {
+//             //     path: "category",  // This is the key part
+//             //     model: "SubCategory"
+//             // }
+//         })
+//         .lean()
+//         .cursor() // this avoids loading full dataset
+//         .toArray();
+//     // .exec()
+
+//     /* --------------------------- 3. Respond ------------------------------- */
+//     return res
+//         .status(200)
+//         .json(new ApiResponse(200, orders, "Orders fetched successfully"));
+// });
+// import asyncHandler from "../utils/asyncHandler.js";
+// import ApiError from "../utils/ApiError.js";
+import ExcelJS from "exceljs";
+// import Order from "../models/order.model.js";
+import { flattenOrder } from '../utils/flattenOrder.js'; // keep your util
+
+// const getOrdersByDate = asyncHandler(async (req, res) => {
+//     const { startDate, endDate } = req.query;
+
+//     /* ------------------------- 1. Validate Inputs ------------------------- */
+//     if (!startDate || !endDate) {
+//         throw new ApiError(400, "Start date and end date are required");
+//     }
+
+//     const from = new Date(startDate);
+//     const to = new Date(new Date(endDate).setHours(23, 59, 59, 999));
+
+//     if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+//         throw new ApiError(400, "Invalid date format provided");
+//     }
+
+//     /* ------------------------- 2. Setup Excel ------------------------- */
+//     res.setHeader(
+//         "Content-Type",
+//         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+//     );
+//     res.setHeader(
+//         "Content-Disposition",
+//         `attachment; filename=orders_${startDate}_to_${endDate}.xlsx`
+//     );
+
+//     const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream: res });
+//     const worksheet = workbook.addWorksheet("Orders");
+
+//     const headers = [
+//         "_id", "orderId", "createdAt", "type", "method", "status", "shippingStatus", "paymentStatus", "paymentDate",
+//         "name", "phoneNo", "userId", "itemNo", "productId", "name_item", "fullName", "variant", "quantity", "price",
+//         "subtotal", "deliveryCharge", "discount", "orderAmount", "gst", "isAppOrder", "abondonedOrder", "pickupScheduled",
+//         "length", "breadth", "height", "weight", "updatedAt"
+//     ];
+
+//     worksheet.addRow(headers).commit();
+
+//     /* --------------------- 3. Stream Orders in Range --------------------- */
+//     const cursor = Order.find({
+//         createdAt: { $gte: from, $lte: to }
+//     })
+//         .sort({ createdAt: 1 })
+//         .populate("userId", "_id name phoneNo")
+//         .populate("items.productId", "_id name")
+//         .lean()
+//         .cursor();
+
+//     for await (const order of cursor) {
+//         const rows = flattenOrder([order]); // convert each order into rows
+//         rows.forEach((row) => {
+//             const rowData = headers.map((h) => row[h] ?? "");
+//             worksheet.addRow(rowData).commit();
+//         });
+//     }
+
+//     await workbook.commit(); // finalize and flush to response
+// });
+
 const getOrdersByDate = asyncHandler(async (req, res) => {
     const { startDate, endDate } = req.query;
 
-    /* ------------------------- 1. Validate Inputs ------------------------- */
+    console.log("📥 Incoming export request:", { startDate, endDate });
+
     if (!startDate || !endDate) {
+        console.error("❌ Missing date parameters");
         throw new ApiError(400, "Start date and end date are required");
     }
 
     const from = new Date(startDate);
-    const to = new Date(new Date(endDate).setHours(23, 59, 59, 999)); // End of the day
+    const to = new Date(new Date(endDate).setHours(23, 59, 59, 999));
 
     if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+        console.error("❌ Invalid date format", { from, to });
         throw new ApiError(400, "Invalid date format provided");
     }
 
-    /* ---------------------- 2. Fetch Orders in Range ---------------------- */
-    const orders = await Order.find({
-        createdAt: {
-            $gte: from,
-            $lte: to,
-        },
-    })
-        .populate({
-            path: 'userId',
-            model: "User",
-            select: "-password -refreshToken",
-            populate: {
-                path: "orders",  // This is the key part
-                model: "Order"
-            }
-        })
-        .populate({
-            path: "items.productId",
-            model: "Product",
-            populate: {
-                path: "category",  // This is the key part
-                model: "SubCategory"
-            }
-        })
-        .sort({ createdAt: 1 });
-    // .exec()
+    console.log("✅ Validated date range:", { from, to });
 
-    /* --------------------------- 3. Respond ------------------------------- */
-    return res
-        .status(200)
-        .json(new ApiResponse(200, orders, "Orders fetched successfully"));
+    // Excel Headers
+    res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=orders_${startDate}_to_${endDate}.xlsx`
+    );
+
+    console.log("📤 Response headers set for Excel export");
+
+    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream: res });
+    const worksheet = workbook.addWorksheet("Orders");
+
+    const headers = [
+        "_id", "orderId", "createdAt", "type", "method", "status", "shippingStatus", "paymentStatus", "paymentDate",
+        "name", "phoneNo", "userId", "itemNo", "productId", "fullName", "variant", "quantity", "price",
+        "subtotal", "deliveryCharge", "discount", "orderAmount", "gst", "isAppOrder", "abondonedOrder", "pickupScheduled",
+        "length", "breadth", "height", "weight", "updatedAt"
+    ];
+
+    worksheet.addRow(headers).commit();
+    console.log("📑 Headers written:", headers);
+
+    const cursor = Order.find({
+        createdAt: { $gte: from, $lte: to }
+    })
+        .sort({ createdAt: 1 })
+        .populate("userId", "_id name phoneNo")
+        .populate("items.productId", "_id name fullName")
+        .lean()
+        .cursor();
+
+    let count = 0;
+    for await (const order of cursor) {
+        const rows = flattenOrder([order]);
+        rows.forEach((row) => {
+            const rowData = headers.map((h) => row[h] ?? "");
+            worksheet.addRow(rowData).commit();
+        });
+        count++;
+        if (count % 100 === 0) console.log(`📦 Processed ${count} orders...`);
+    }
+
+    console.log(`✅ Finished processing ${count} orders`);
+    await workbook.commit();
+    console.log("📤 Workbook committed and response sent");
 });
 
 const getAllOrdersByUser = asyncHandler(async (req, res) => {

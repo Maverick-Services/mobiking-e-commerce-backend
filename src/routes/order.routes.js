@@ -34,7 +34,7 @@ import {
     shiprocketWebhook,
     verifyShiprocketToken
 } from "../controllers/shiprocket.controller.js";
-import { getPaginatedOrders } from "../controllers/pagination.controller.js";
+import { getPaginatedOrders, getSalesDataController } from "../controllers/pagination.controller.js";
 
 const router = Router()
 
@@ -53,6 +53,7 @@ router.route("/custom/filtered").get(verifyJWT, getFilteredOrdersByDate);
 router.route("/custom").get(verifyJWT, getOrdersByDate);
 router.route("/").get(verifyJWT, getAllOrders);
 //Paginated Orders
+router.route("/sales").get(verifyJWT, getSalesDataController);
 router.route("/paginated").get(verifyJWT, getPaginatedOrders);
 router.route("/request").get(verifyJWT, getOrdersByRequestType);
 

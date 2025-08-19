@@ -97,7 +97,11 @@ const deleteCategory = asyncHandler(async (req, res) => {
 });
 
 const getAllCategories = asyncHandler(async (req, res) => {
-    const allCategories = await Category.find({}).populate("subCategories").exec();
+    const allCategories = await Category.find({}).populate({
+        path: "subCategories",
+        model: "SubCategory",
+        select: "-products"
+    }).exec();
 
     if (!allCategories) {
         throw new ApiError(409, "Could not find categories");
@@ -391,7 +395,16 @@ const deleteSubCategory = asyncHandler(async (req, res) => {
 });
 
 const getAllSubCategories = asyncHandler(async (req, res) => {
-    const allSubCategories = await SubCategory.find({}).populate("parentCategory products").exec();
+    const allSubCategories = await SubCategory.find({})
+        .populate({
+            path: "parentCategory",
+            model: "Category",
+        })
+        .populate({
+            path: "products",
+            model: "Product",
+            // select: "-"
+        }).exec();
 
     if (!allSubCategories) {
         throw new ApiError(409, "Could not find sub categories");
