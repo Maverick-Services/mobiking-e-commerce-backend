@@ -1250,7 +1250,7 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
             return {
                 name: `${item.productId.fullName}${variant ? `\n , ${variant}` : ""}`, // Two-line name
                 sku: uuidv4().split('-')[0].toUpperCase() || item?.productId?._id,
-                hsn: item?.productId?.hsn || uuidv4().split('-')[0].toUpperCase().slice(0, 8),
+                // hsn: item?.productId?.hsn || uuidv4().split('-')[0].toUpperCase().slice(0, 8),
                 // sku: `${item.productId._id}-${variant.replace(/\s+/g, "_").toUpperCase()}`,
                 units: item.quantity,
                 selling_price: item.price,
