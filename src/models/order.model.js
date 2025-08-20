@@ -91,6 +91,11 @@ const orderSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
+
+        _restockDone: {
+            type: Boolean,
+            default: false
+        },
         pickupTokenNumber: String,  // “2025‑06‑14”
         pickupDate: String,  // “2025‑06‑14”
         expectedDeliveryDate: String,  // “2025‑06‑14”

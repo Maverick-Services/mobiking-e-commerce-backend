@@ -1951,6 +1951,7 @@ async function adjustStock(order) {
         }
     }));
     await Product.bulkWrite(ops);
+    order._restockDone = true;
 }
 
 const updateRequestStatus = (requests, reason) => {

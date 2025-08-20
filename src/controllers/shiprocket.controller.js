@@ -3,6 +3,7 @@ import { Order } from "../models/order.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
+import { Product } from "../models/product.model.js";
 
 // This function should be used right after order creation in Shiprocket
 // controllers/assignBestCourier.js
@@ -365,20 +366,20 @@ const verifyShiprocketToken = (req, res, next) => {
    Shiprocket Webhook – handle post‑pickup events only
 ------------------------------------------------------------------- */
 const shiprocketWebhook = asyncHandler(async (req, res) => {
-    const p = req.body;
-    const srStatus = (p.shipment_status || p.current_status || "").toUpperCase();
+    const p = req?.body;
+    const srStatus = (p?.shipment_status || p?.current_status || "").toUpperCase();
 
     /* 2) Locate order -------------------------------------------------------- */
     const order = await Order.findOne({
         $or: [
-            { awbCode: p.awb },
-            { shiprocketOrderId: String(p.order_id || p.sr_order_id) },
+            { awbCode: p?.awb },
+            { shiprocketOrderId: String(p?.order_id || p?.sr_order_id) },
         ],
     });
     if (!order) return res.status(200).json({ success: true, unknown: true });
 
     /* 4) Always overwrite scans if provided ---------------------------------- */
-    if (Array.isArray(p.scans) && p.scans.length) {
+    if (Array.isArray(p?.scans) && p?.scans?.length) {
         await Order.findByIdAndUpdate(order._id, {
             scans: p?.scans,
             shippingStatus: srStatus
@@ -394,18 +395,18 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
     if (!postPickupStatuses.includes(srStatus))
         return res.status(200).json({ success: true, ignored: true });
 
-    const prevShip = (order.shippingStatus || "").toUpperCase();
+    const prevShip = (order?.shippingStatus || "").toUpperCase();
     const nowISO = new Date().toISOString();
     const upd = { shippingStatus: srStatus };      // always store latest
 
     /* helper to restore stock exactly once */
     const restoreStock = async () => {
-        if (order._restockDone) return;
-        for (const it of order.items) {
-            await Product.findByIdAndUpdate(it.productId, {
+        if (order?._restockDone) return;
+        for (const it of order?.items) {
+            await Product.findByIdAndUpdate(it?.productId, {
                 $inc: {
-                    totalStock: it.quantity,
-                    [`variants.${it.variantName}`]: it.quantity,
+                    totalStock: it?.quantity,
+                    [`variants.${it?.variantName}`]: it?.quantity,
                 },
             }).exec();
         }
@@ -417,7 +418,7 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
         case "PICKED UP":
             if (prevShip !== "PICKED UP") {
                 upd.pickupDate = nowISO;
-                if (["NEW", "ACCEPTED", "SHIPPED"].includes(order.status.toUpperCase()))
+                if (["NEW", "ACCEPTED", "SHIPPED"].includes(order?.status?.toUpperCase()))
                     upd.status = "Shipped";
             }
             break;
@@ -425,7 +426,7 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
         case "SHIPPED":
         case "IN TRANSIT":
         case "OUT FOR PICKUP":
-            if (["NEW", "ACCEPTED", "SHIPPED"].includes(order.status.toUpperCase()))
+            if (["NEW", "ACCEPTED", "SHIPPED"].includes(order?.status?.toUpperCase()))
                 upd.status = "Shipped";
             break;
 
@@ -450,8 +451,8 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
         // case "RTO":
         // case "RTO IN TRANSIT":
         case "RTO INITIATED":
-            if (!order.rtoInitiatedAt) upd.rtoInitiatedAt = nowISO;
-            if (order.status !== "Returned") upd.status = "Returned";
+            if (!order?.rtoInitiatedAt) upd.rtoInitiatedAt = nowISO;
+            if (order?.status !== "Returned") upd.status = "Returned";
             break;
 
         case "RTO DELIVERED":
@@ -475,8 +476,8 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
     }
 
     /* 5) Persist if anything changed ---------------------------------------- */
-    if (Object.keys(upd).length > 1) {             // >1 because shippingStatus always set
-        await Order.findByIdAndUpdate(order._id, upd, { new: true }).exec();
+    if (Object.keys(upd)?.length > 1) {             // >1 because shippingStatus always set
+        await Order.findByIdAndUpdate(order?._id, upd, { new: true }).exec();
     }
 
     return res.status(200).json(new ApiResponse(200, null, "Webhook processed"));
