@@ -1,6 +1,8 @@
 import axios from "axios";
 import { Order } from "../models/order.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { ApiError } from "../utils/ApiError.js";
 
 // This function should be used right after order creation in Shiprocket
 // controllers/assignBestCourier.js
@@ -437,7 +439,7 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
 
         /* Late cancellation *after* pickup */
         case "CANCELLED":
-            if (["PICKED UP", "SHIPPED", "IN TRANSIT"].includes(prevShip)) {
+            if (["PICKED UP", "SHIPPED", "IN TRANSIT"].includes(prevShip) || order?.status != "Cancelled") {
                 upd.status = "Cancelled";
                 upd.reason = "Cancelled by courier after pickup";
                 await restoreStock();
