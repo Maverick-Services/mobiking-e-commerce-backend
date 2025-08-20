@@ -276,6 +276,7 @@ const createManualOrder = asyncHandler(async (req, res) => {
             gst,
             subtotal,
             deliveryCharge: deliveryCharge || 0,
+            address: `${address}, ${address2}, ${city}, ${state}, ${pincode}`,
             address: address?.trim(),
             address2: address2?.trim() || 0,
             city: city?.trim(),
@@ -437,7 +438,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
         const foundAddress = await Address.findById(addressId);
 
         const addressDetails = {
-            address: foundAddress?.street,
+            address: `${foundAddress?.street}, ${foundAddress?.street2}, ${foundAddress?.city}, ${foundAddress?.state}, ${foundAddress?.pinCode}`,
             address2: foundAddress?.street2,
             city: foundAddress?.city,
             state: foundAddress?.state,
@@ -671,7 +672,8 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
         const foundAddress = await Address.findById(addressId);
 
         const addressDetails = {
-            address: foundAddress?.street,
+            address: `${foundAddress?.street}, ${foundAddress?.street2}, ${foundAddress?.city}, ${foundAddress?.state}, ${foundAddress?.pinCode}`,
+            // address: foundAddress?.street,
             address2: foundAddress?.street2,
             city: foundAddress?.city,
             state: foundAddress?.state,
@@ -1292,11 +1294,11 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
                 Authorization: `Bearer ${shiprocketToken}`
             }
         });
-        // console.log("shiprocket order creation response", data);
+        console.log("shiprocket order creation response", data);
         // console.log("New Order: ", data, "Payload sent: ", payload);
 
         if (!data?.shipment_id) {
-            throw new ApiError(409, 'Could create order at Shiprocket');
+            throw new ApiError(409, data?.message || 'Could create order at Shiprocket');
         }
 
         let updatedOrder = await Order.findByIdAndUpdate(
@@ -1331,7 +1333,7 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
 
     } catch (err) {
         console.error("Shiprocket Order Error:", err?.response?.data || err);
-        res.status(500).json({ error: 'Shiprocket order creation failed' });
+        res.status(500).json({ error: err?.response?.data || err?.message || 'Shiprocket order creation failed' });
     }
 });
 
