@@ -1240,7 +1240,7 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
         // if (foundOrder && foundOrder?.status != "New")
         //     return res.status(404).json({ message: `Order is ${foundOrder?.status}` });
 
-        if (foundOrder && foundOrder?.status != "Accepted" || foundOrder?.status != "Hold")
+        if (foundOrder && foundOrder?.status != "New" && foundOrder?.status != "Accepted" && foundOrder?.status != "Hold")
             return res.status(404).json({ message: `Order is ${foundOrder?.status}` });
 
         //Format the items name
