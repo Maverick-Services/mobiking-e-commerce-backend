@@ -455,8 +455,10 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
       { email: regex },
       { phoneNo: regex }
     ];
+    delete filter['createdAt'];
   } else if (searchQuery && queryParameter === "order") {
     searchFilter.orderId = new RegExp(`^${searchQuery}`, "i");
+    delete filter['createdAt'];
   }
 
   const [
@@ -584,6 +586,7 @@ export const getPaginatedProducts = asyncHandler(async (req, res) => {
       { name: regex },
       { fullName: regex },
     ];
+    delete filter['createdAt'];
   }
 
   // TYPE: fast, slow, non
@@ -727,6 +730,7 @@ export const getPaginatedUsers = asyncHandler(async (req, res) => {
       { email: regex },
       { phoneNo: regex }
     ];
+    delete filter['createdAt'];
   }
 
   /* ========== Special TYPE Filtering (Frequent / OneOrder / NoOrder) ========== */
@@ -866,6 +870,7 @@ export const getPaginatedQueries = asyncHandler(async (req, res) => {
       { title: regex },
       { desciption: regex },
     ];
+    delete filter['createdAt'];
   }
 
   const [queries, totalCount] = await Promise.all([
@@ -935,6 +940,7 @@ export const getPaginatedCoupons = asyncHandler(async (req, res) => {
     filter.$or = [
       { code: regex }
     ];
+    delete filter['createdAt'];
   }
 
   const [coupons, totalCount] = await Promise.all([
