@@ -488,9 +488,14 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit)
     .populate({
-      path: 'userId',
+      path: "userId",
       model: "User",
-      select: "name email phoneNo",
+      select: "name email phoneNo orders",
+      populate: {
+        path: "orders",
+        model: "Order",
+        select: "_id status"
+      }
     })
     .populate({
       path: "items.productId",
