@@ -17,7 +17,9 @@ import {
     rejectCancelRequest,
     rejectReturnRequest,
     rejectWarrantyRequest,
-    updateCustomer
+    sendOtp,
+    updateCustomer,
+    verifyOtp
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import {
@@ -38,7 +40,8 @@ router.route("/profile/update").post(verifyJWT, updateCustomer);
 router.route("/createCustomer").post(verifyJWT, createCustomer);
 router.route("/customer/:phoneNo").get(verifyJWT, getCustomerByMobile);
 router.route("/createUser").post(verifyJWT, createEmployee);
-router.route("/login").post(loginUser);
+router.route("/sendOtp").post(sendOtp, loginUser);
+router.route("/login").post(verifyOtp, loginUser);
 router.route("/refresh-token").post(refreshAccessToken)
 router.route("/logout").post(verifyJWT, logoutUser);
 router.route("/employees/:_id").put(verifyJWT, editEmployee);

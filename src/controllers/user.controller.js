@@ -6,11 +6,76 @@ import jwt from "jsonwebtoken";
 import { ROLES } from "../constants.js";
 import { Cart } from "../models/cart.model.js";
 import { Order } from "../models/order.model.js";
-
+import { OTP } from "../models/otp.model.js";
+import axios from 'axios';
+import otpGenerator from 'otp-generator'
 
 // ******************************************************
 //                  USER AUTH CONTROLLERS
 // ******************************************************
+
+export const sendOtp = asyncHandler(async (req, res) => {
+    const { mobile } = req.body;
+    if (!mobile) return res.status(400).json({ error: 'Mobile number required' });
+
+    let existingUser = await User.find({ phoneNo: mobile });
+    existingUser = existingUser[0];
+    if (existingUser && existingUser?.role != "user") {
+        throw new ApiError(403, `${existingUser?.role} aacount already exist with this phone number`);
+    }
+
+    let otp = 0;
+    let result = null;
+
+    do {
+        //if new user then generate otp
+        otp = otpGenerator.generate(6, {
+            upperCaseAlphabets: false,
+            lowerCaseAlphabets: false,
+            specialChars: false
+        });
+
+        //check if otp generated is unique or not
+        result = await OTP.findOne({ code: otp });
+    } while (result)
+
+    const expiresAt = new Date(Date.now() + process.env.OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    // DONT EDIT THIS TEMPLATE NOT EVEN INDENTATION
+    const message = `Dear User, your OTP to login on https://mobikingwholesale.com/ is ${otp}. It is valid for 2 minutes. 
+Please Do Not share with anyone.
+Team Mobiking.`;
+
+    const newOtp = await OTP.create(
+        {
+            mobile,
+            code: otp, expiresAt, verified: false
+        }
+    );
+
+    if (!newOtp) {
+        throw new ApiError(500, "Could not create otp. Try again later");
+    }
+
+    const response = await axios.get('https://api.mylogin.co.in/api/v2/SendSMS', {
+        params: {
+            ApiKey: process.env.MY_SMSMANTRA_API_KEY,
+            ClientId: process.env.MY_SMSMANTRA_CLIENT_ID,
+            SenderId: process.env.MY_SMSMANTRA_SENDER_ID,
+            Message: message,
+            MobileNumbers: mobile
+        }
+    });
+
+    // console.log(response?.data)
+    if (!response?.data?.Data[0]) {
+        throw new ApiError(500, "Could not send otp");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, { ...response?.data?.Data[0], newOtp }, 'OTP sent')
+    );
+});
 
 const generateAccessAndRefereshTokens = async (userId) => {
     try {
@@ -27,6 +92,39 @@ const generateAccessAndRefereshTokens = async (userId) => {
         throw new ApiError(500, "Something went wrong while generating referesh and access token")
     }
 }
+
+export const verifyOtp = asyncHandler(async (req, res, next) => {
+    const { role, phoneNo: mobile, otp } = req.body;
+
+    if (role && role != ROLES.USER) {
+        return next();
+    }
+
+    if (!mobile || !otp) throw new ApiError(400, 'Mobile and OTP code required');
+
+    const response = await OTP.find({ mobile }).sort({ createdAt: -1 }).limit(1);
+
+    if (response.length === 0) throw new ApiError(404, 'OTP not found');
+
+    const otpDoc = response[0];
+
+    if (otpDoc.verified) throw new ApiError(400, 'OTP already verified');
+
+    if (otpDoc.expiresAt < new Date()) throw new ApiError(400, 'OTP expired');
+
+    if (otpDoc.code !== otp) throw new ApiError(400, 'Incorrect OTP');
+
+    const updatedOtp = await OTP.findByIdAndUpdate(
+        otpDoc?._id,
+        {
+            verified: true
+        },
+        { new: true }
+    );
+
+    console.log("Otp verified", updatedOtp);
+    next();
+})
 
 const loginUser = asyncHandler(async (req, res) => {
     const { role, email, phoneNo, password } = req.body;
