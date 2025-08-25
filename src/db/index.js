@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { DB_NAME } from "../constants.js";
+import { initCounter } from "../utils/counter.js";
 
 
 const connectDB = async () => {
@@ -8,6 +9,7 @@ const connectDB = async () => {
             useNewUrlParser: true,
             useUnifiedTopology: true
         })
+        await initCounter();
         console.log(`\n MongoDB Database: ${process.env.DB_NAME}`);
         console.log(`\n MongoDB connected !! DB HOST: ${connectionInstance.connection.host}`);
     } catch (error) {

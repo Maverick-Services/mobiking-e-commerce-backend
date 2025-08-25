@@ -15,6 +15,9 @@ import { Address } from '../models/address.model.js';
 import { isNumber } from 'razorpay/dist/utils/razorpay-utils.js';
 import { PaymentLink } from '../models/payment_link.model.js';
 import { Coupon } from '../models/coupon.model.js';
+import ExcelJS from "exceljs";
+import { flattenOrder } from '../utils/flattenOrder.js'; // keep your util
+import { Counter } from './../models/counter.model.js';
 
 const razorpayConfig = () => {
     const razorpay = new Razorpay({
@@ -1090,12 +1093,15 @@ const verifyPayment = async (req, res) => {
         let updatedUser = null;
 
         if (isValid) {
+
+            const nextOrderId = await Order.generateNextOrderId()
             // ✅ Payment Verified
             await session.withTransaction(async () => {
                 order.abondonedOrder = false;
                 order.paymentStatus = 'Paid';
                 order.razorpayOrderId = razorpay_order_id;
                 order.razorpayPaymentId = razorpay_payment_id;
+                order.orderId = nextOrderId
                 await order.save({ session });
 
                 const uniqueProductIds = [
@@ -1641,9 +1647,7 @@ const getFilteredOrdersByDate = asyncHandler(async (req, res) => {
 // });
 // import asyncHandler from "../utils/asyncHandler.js";
 // import ApiError from "../utils/ApiError.js";
-import ExcelJS from "exceljs";
-// import Order from "../models/order.model.js";
-import { flattenOrder } from '../utils/flattenOrder.js'; // keep your util
+
 
 // const getOrdersByDate = asyncHandler(async (req, res) => {
 //     const { startDate, endDate } = req.query;

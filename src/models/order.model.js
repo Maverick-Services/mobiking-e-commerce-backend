@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { itemsSchema } from "./cart.model.js";
+import { Counter } from "./counter.model.js";
 
 const requestSchema = new mongoose.Schema({
     type: {
@@ -118,7 +119,7 @@ const orderSchema = new mongoose.Schema(
         orderId: {
             type: String,
             required: true,
-            unique: true
+            unique: [true, "Order Id already used"]
         },
         type: {
             type: String,
@@ -204,5 +205,28 @@ const orderSchema = new mongoose.Schema(
 );
 
 orderSchema.index({ createdAt: -1 });
+orderSchema.pre("save", async function (next) {
+    if (this.isNew && !this.abondonedOrder) { // only for new orders that are not abandoned
+        const counter = await Counter.findOneAndUpdate(
+            { _id: "orderId" },
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        ).lean();  // lean() improves concurrency performance
+        this.orderId = counter.seq;
+        console.log("Order Id: ", this.orderId);
+    }
+    next();
+});
+
+orderSchema.statics.generateNextOrderId = async function () {
+    const counter = await Counter.findOneAndUpdate(
+        { _id: "orderId" },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    console.log("Order Id: ", counter.seq);
+    return counter.seq;
+};
 
 export const Order = mongoose.model("Order", orderSchema);
