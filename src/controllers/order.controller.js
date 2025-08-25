@@ -122,7 +122,7 @@ const createPosOrder = asyncHandler(async (req, res) => {
             type: 'Pos',
             status: 'Delivered',
             deliveredAt: nowIso,
-            paymentStatus: method == 'Cash' ? 'Paid' : 'Pending',
+            paymentStatus: method == 'Online' ? 'Pending' : 'Paid',
             paymentDate,
             orderId: uuidv4().split('-')[0].toUpperCase(),
             orderAmount,
