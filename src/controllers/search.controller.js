@@ -71,21 +71,39 @@ export const getSearchSuggestions = asyncHandler(async (req, res) => {
 
 export const searchProducts = asyncHandler(async (req, res) => {
   const query = req.query.q?.trim();
+  const searchKey = req.query?.searchKey?.trim();
   const priceTo = parseFloat(req.query.priceTo);
   const priceFrom = parseFloat(req.query.priceFrom);
 
-  if (!query || query.length < 2) {
+  if (!query && !searchKey) {
+    throw new ApiError(400, "Search query or search key not found");
+  }
+
+  if (query && query.length < 2) {
     throw new ApiError(400, "Search query must be at least 2 characters");
   }
 
-  const regex = new RegExp(query, "i"); // Case-insensitive partial match
-
-  const matchStage = {
-    $and: [
-      { active: true },
-      { $or: [{ name: regex }, { fullName: regex }] }
-    ]
-  };
+  let matchStage = {};
+  if (query) {
+    const regex = new RegExp(query, "i"); // Case-insensitive partial match
+    matchStage = {
+      $and: [
+        { active: true },
+        { $or: [{ name: regex }, { fullName: regex }] }
+      ]
+    };
+  } else if (searchKey) {
+    const regex = new RegExp(searchKey, "i"); // Case-insensitive partial match
+    // console.log(searchKey, regex);
+    matchStage = {
+      $and: [
+        { active: true },
+        {
+          tags: regex
+        }
+      ]
+    }
+  }
 
   const priceFilter = {};
   if (!isNaN(priceFrom)) priceFilter.$gte = priceFrom;
