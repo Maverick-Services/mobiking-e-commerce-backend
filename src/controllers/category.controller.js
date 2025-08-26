@@ -152,7 +152,7 @@ const createSubCategory = asyncHandler(async (req, res) => {
         theme,
         upperBanner,
         lowerBanner,
-        photos
+        photos, tags
     } = req.body;
 
     //Todo: Add Images, upper, lower banner in the subcategories
@@ -205,6 +205,7 @@ const createSubCategory = asyncHandler(async (req, res) => {
         upperBanner: upperBanner ? upperBanner : "",
         lowerBanner: lowerBanner ? lowerBanner : "",
         photos: photos ? photos : [],
+        tags: tags || [],
         deliveryCharge,
         minOrderAmount,
         minFreeDeliveryOrderAmount,
@@ -245,7 +246,8 @@ const editSubCategory = asyncHandler(async (req, res) => {
         theme,
         upperBanner,
         lowerBanner,
-        photos
+        photos,
+        tags
     } = req.body;
 
     //Todo: Add Images, upper, lower banner in the subcategories
@@ -283,6 +285,7 @@ const editSubCategory = asyncHandler(async (req, res) => {
             upperBanner: upperBanner ? upperBanner : foundSubCategory?.upperBanner,
             lowerBanner: lowerBanner ? lowerBanner : foundSubCategory?.lowerBanner,
             photos: photos ? photos : foundSubCategory?.photos,
+            tags: tags ? tags : foundSubCategory?.tags,
         },
         { new: true }
     ).populate("parentCategory products").exec();

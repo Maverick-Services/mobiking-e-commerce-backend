@@ -13,6 +13,10 @@ const subCatgeorySchema = new mongoose.Schema({
         required: true,
         unique: [true, "Slug already exist"]
     },
+    tags: {
+        type: [String],
+        default: []
+    },
     sequenceNo: {
         type: Number,
         default: 0

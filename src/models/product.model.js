@@ -49,6 +49,10 @@ const productSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,
         default: []
     },
+    tags: {
+        type: [String],
+        default: []
+    },
     active: {
         type: Boolean,
         default: true
@@ -95,6 +99,10 @@ const productSchema = new mongoose.Schema({
             },
             message: props => `${props.value} is not valid. Must have exactly 3 decimal places.`
         }
+    },
+    brand: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Brand',
     },
     category: {
         type: mongoose.Schema.Types.ObjectId,

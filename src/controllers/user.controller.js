@@ -508,8 +508,25 @@ const getCustomerByMobile = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Phone No is undefined")
     }
 
-    const existedUser = await User.findOne({ phoneNo, role: "user" });
-    ;
+    const existedUser = await User.findOne({
+        phoneNo,
+        role: "user"
+    }).populate({
+        path: "cart",
+        populate: {
+            path: "items.productId",
+            model: "Product",
+            populate: {
+                path: "category",  // This is the key part
+                model: "SubCategory"
+            }
+        }
+    })
+        .populate("address")
+        .populate("wishlist")
+        .populate("orders")
+        .exec();
+
     if (!existedUser) {
         return res.status(200).json(
             new ApiResponse(200, { phoneNo }, "Customer not found with this phone number")

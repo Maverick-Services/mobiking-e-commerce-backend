@@ -5,6 +5,7 @@ import { Product } from "../models/product.model.js";
 import { User } from "../models/user.model.js";
 import { Query } from "../models/query.model.js";
 import { Coupon } from "../models/coupon.model.js";
+import { Brand } from "../models/brand.model.js";
 
 // const getSalesData = async (salesFilter) => {
 
@@ -520,6 +521,42 @@ export const getPaginatedOrders = asyncHandler(async (req, res) => {
         hasPrevPage: page > 1,
       },
     }, "Orders fetched successfully")
+  );
+});
+
+export const getPaginatedBrands = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+
+  const parsedPage = Math.max(1, parseInt(page));
+  const parsedLimit = Math.min(100, Math.max(1, parseInt(limit)));
+  const skip = (parsedPage - 1) * parsedLimit;
+
+  //   const filter = { active: true };
+  const filter = {};
+
+  const [brands, totalCount] = await Promise.all([
+    Brand.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parsedLimit)
+      .lean(),
+    Brand.countDocuments(filter),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / parsedLimit);
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      brands,
+      totalCount,
+      pagination: {
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages,
+        hasNextPage: parsedPage < totalPages,
+        hasPrevPage: parsedPage > 1,
+      },
+    }, "Brands fetched successfully")
   );
 });
 

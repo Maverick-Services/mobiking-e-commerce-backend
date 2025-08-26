@@ -2,6 +2,7 @@ import { Product } from "../models/product.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { SubCategory } from "../models/sub_category.model.js";
 
 // export const searchProducts = asyncHandler(async (req, res) => {
 //   const query = req.query.q?.trim();
@@ -29,6 +30,44 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 //     new ApiResponse(200, products, "Products fetched successfully")
 //   );
 // });
+export const getSearchSuggestions = asyncHandler(async (req, res) => {
+  const query = req.query.q?.trim();
+  if (!query) {
+    throw new ApiError(400, "Query is required");
+  }
+
+  const regex = new RegExp(query, "i"); // case-insensitive
+
+  // 1️⃣ Fetch product tags
+  const products = await Product.find(
+    { tags: regex }, // match inside tags
+    "tags"           // only fetch tags
+  );
+
+  // 2️⃣ Fetch subcategory tags
+  const subCategories = await SubCategory.find(
+    { tags: regex },
+    "tags"
+  );
+
+  // 3️⃣ Flatten & dedupe tags
+  const productTags = [...new Set(products.flatMap(p => p.tags))];
+  const subCategoryTags = [...new Set(subCategories.flatMap(sc => sc.tags))];
+
+  // 4️⃣ Filter by regex (in case some tags slipped in)
+  const filteredProductTags = productTags.filter(tag => regex.test(tag));
+  const filteredSubCategoryTags = subCategoryTags.filter(tag => regex.test(tag));
+
+  // 5️⃣ Build suggestions
+  const suggestions = {
+    productSuggestions: filteredProductTags,
+    subCategorySuggestions: filteredSubCategoryTags
+  };
+
+  return res.status(200).json(
+    new ApiResponse(200, { query, suggestions }, "Suggestions fetched successfully")
+  );
+});
 
 export const searchProducts = asyncHandler(async (req, res) => {
   const query = req.query.q?.trim();

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Product } from "../models/product.model.js";
 import { Stock } from "../models/stock.model.js";
 import { SubCategory } from "../models/sub_category.model.js";
@@ -5,12 +6,14 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { Brand } from "../models/brand.model.js";
 
 const createProduct = asyncHandler(async (req, res) => {
     let {
         name, fullName, description,
+        brandId,
         price, categoryId,
-        slug, active, images,
+        slug, active, images, tags,
         descriptionPoints,
         keyInformation,
         basePrice, regularPrice,
@@ -22,13 +25,13 @@ const createProduct = asyncHandler(async (req, res) => {
     //Validate details
     if (
         !slug ||
-        !name || !fullName || !description ||
+        !fullName || !description ||
         !price || !categoryId
     ) {
         throw new ApiError(400, "Details not found");
     }
 
-    name = name.trim()
+    name = name?.trim()
     fullName = fullName.trim()
     description = description.trim()
 
@@ -36,6 +39,16 @@ const createProduct = asyncHandler(async (req, res) => {
     const foundCategory = await SubCategory.findById(categoryId);
     if (!foundCategory) {
         throw new ApiError(409, `Category not found`);
+    }
+
+    if (brandId) {
+        if (!mongoose.Types.ObjectId.isValid(brandId)) {
+            throw new ApiError(409, `Valid brandId not found`);
+        }
+        const foundBrand = await Brand.findById(_id);
+        if (!foundBrand) {
+            throw new ApiError(409, `Brand not found`);
+        }
     }
 
     //create selling price
@@ -57,6 +70,8 @@ const createProduct = asyncHandler(async (req, res) => {
     //create new product
     const newProduct = await Product.create({
         name, fullName, description,
+        brand: brandId,
+        tags: tags || [],
         slug, active,
         sellingPrice,
         category: categoryId,
@@ -243,6 +258,8 @@ const editProduct = asyncHandler(async (req, res) => {
     const { _id } = req.params;
     const {
         name, fullName, description,
+        brandId,
+        tags,
         price, categoryId,
         slug, active,
         descriptionPoints,
@@ -273,9 +290,19 @@ const editProduct = asyncHandler(async (req, res) => {
         throw new ApiError(409, `Category not found`);
     }
 
+    if (brandId) {
+        if (!mongoose.Types.ObjectId.isValid(brandId)) {
+            throw new ApiError(409, `Valid brandId not found`);
+        }
+        const foundBrand = await Brand.findById(_id);
+        if (!foundBrand) {
+            throw new ApiError(409, `Brand not found`);
+        }
+    }
+
     //create selling price
     let sellingPrice = foundProduct?.sellingPrice[foundProduct?.sellingPrice?.length - 1];
-    if (sellingPrice?.price !== price) {
+    if (price && sellingPrice?.price !== price) {
         sellingPrice = [...foundProduct?.sellingPrice, { price }]
     } else {
         sellingPrice = foundProduct?.sellingPrice
@@ -287,6 +314,7 @@ const editProduct = asyncHandler(async (req, res) => {
             name: name?.trim(),
             fullName: fullName?.trim(),
             description: description?.trim(),
+            brand: brandId,
             slug,
             hsn, sku,
             gst,
@@ -297,7 +325,8 @@ const editProduct = asyncHandler(async (req, res) => {
             basePrice: basePrice || foundProduct?.basePrice || 0,
             regularPrice: regularPrice || foundProduct?.regularPrice || 0,
             category: categoryId,
-            images: images ? images : foundProduct?.images
+            images: images ? images : foundProduct?.images,
+            tags: tags ? tags : foundProduct?.tags
         },
         { new: true }
     ).populate("category stock groups").exec(); //populate order, group here
