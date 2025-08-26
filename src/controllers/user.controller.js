@@ -9,6 +9,7 @@ import { Order } from "../models/order.model.js";
 import { OTP } from "../models/otp.model.js";
 import axios from 'axios';
 import otpGenerator from 'otp-generator'
+import mongoose from "mongoose";
 
 // ******************************************************
 //                  USER AUTH CONTROLLERS
@@ -509,24 +510,9 @@ const getCustomerByMobile = asyncHandler(async (req, res) => {
     }
 
     const existedUser = await User.findOne({
-        phoneNo,
-        role: "user"
-    }).populate({
-        path: "cart",
-        populate: {
-            path: "items.productId",
-            model: "Product",
-            populate: {
-                path: "category",  // This is the key part
-                model: "SubCategory"
-            }
-        }
-    })
-        .populate("address")
-        .populate("wishlist")
-        .populate("orders")
-        .exec();
-
+        phoneNo, role: "user"
+    });
+    ;
     if (!existedUser) {
         return res.status(200).json(
             new ApiResponse(200, { phoneNo }, "Customer not found with this phone number")
@@ -535,6 +521,53 @@ const getCustomerByMobile = asyncHandler(async (req, res) => {
 
     return res.status(200).json(
         new ApiResponse(201, existedUser?._id, "Customer fetched Successfully")
+    )
+
+})
+
+const getCustomerById = asyncHandler(async (req, res) => {
+
+    const {
+        _id,
+    } = req.params;
+
+    if (
+        [_id].some((field) => field?.trim() === "") || !mongoose.Types.ObjectId.isValid(_id)
+    ) {
+        throw new ApiError(400, "Valid user Id not found")
+    }
+
+    const existedUser = await User.findById(_id)
+        .populate({
+            path: "cart",
+            populate: {
+                path: "items.productId",
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
+            }
+        })
+        .populate("address")
+        .populate("wishlist")
+        .populate({
+            path: "orders",
+            model: "Order",
+            populate: {
+                path: "items.productId",
+                model: "Product",
+                select: "name fullName images"
+            }
+        })
+        .exec();
+
+    if (!existedUser) {
+        throw new ApiError(400, `Customer not found with Id ${existedUser?._id}`)
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, existedUser, "Customer fetched Successfully")
     )
 
 })
@@ -1380,6 +1413,7 @@ export {
     createCustomer,
     updateCustomer,
     getCustomerByMobile,
+    getCustomerById,
     createEmployee,
     editEmployee,
     deleteEmployee,
