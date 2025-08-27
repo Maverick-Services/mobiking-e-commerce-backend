@@ -367,6 +367,7 @@ const verifyShiprocketToken = (req, res, next) => {
 ------------------------------------------------------------------- */
 const shiprocketWebhook = asyncHandler(async (req, res) => {
     const p = req?.body;
+    console.log("Shiprocket Webhook Response:", p);
     const srStatus = (p?.shipment_status || p?.current_status || "").toUpperCase();
 
     /* 2) Locate order -------------------------------------------------------- */
