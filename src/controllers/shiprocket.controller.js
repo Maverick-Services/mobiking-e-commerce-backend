@@ -374,6 +374,8 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
         $or: [
             { awbCode: p?.awb },
             { shiprocketOrderId: String(p?.order_id || p?.sr_order_id) },
+            { "returnData.order_id": String(p?.order_id) },  // match return order_id
+            { "returnData.awb_code": p?.awb }
         ],
     });
     if (!order) return res.status(200).json({ success: true, unknown: true });
