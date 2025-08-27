@@ -84,15 +84,8 @@ export const searchProducts = asyncHandler(async (req, res) => {
   }
 
   let matchStage = {};
-  if (query) {
-    const regex = new RegExp(query, "i"); // Case-insensitive partial match
-    matchStage = {
-      $and: [
-        { active: true },
-        { $or: [{ name: regex }, { fullName: regex }] }
-      ]
-    };
-  } else if (searchKey) {
+
+  if (searchKey) {
     const regex = new RegExp(searchKey, "i"); // Case-insensitive partial match
     // console.log(searchKey, regex);
     matchStage = {
@@ -103,7 +96,36 @@ export const searchProducts = asyncHandler(async (req, res) => {
         }
       ]
     }
+  } else if (query) {
+    const regex = new RegExp(query, "i"); // Case-insensitive partial match
+    matchStage = {
+      $and: [
+        { active: true },
+        { $or: [{ name: regex }, { fullName: regex }] }
+      ]
+    };
   }
+
+  // if (query) {
+  //   const regex = new RegExp(query, "i"); // Case-insensitive partial match
+  //   matchStage = {
+  //     $and: [
+  //       { active: true },
+  //       { $or: [{ name: regex }, { fullName: regex }] }
+  //     ]
+  //   };
+  // } else if (searchKey) {
+  //   const regex = new RegExp(searchKey, "i"); // Case-insensitive partial match
+  //   // console.log(searchKey, regex);
+  //   matchStage = {
+  //     $and: [
+  //       { active: true },
+  //       {
+  //         tags: regex
+  //       }
+  //     ]
+  //   }
+  // }
 
   const priceFilter = {};
   if (!isNaN(priceFrom)) priceFilter.$gte = priceFrom;
