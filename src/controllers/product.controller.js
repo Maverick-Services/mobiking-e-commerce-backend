@@ -405,10 +405,39 @@ const updateProductStatus = asyncHandler(async (req, res) => {
 const getProductBySlug = asyncHandler(async (req, res) => {
     const completeProductDetails = await Product.findOne({
         slug: req.params.slug
-    }).populate("category stock groups").exec();
+    }).populate("category stock groups").select("-orders").exec();
 
     if (!completeProductDetails) {
         throw new ApiError(409, "Could not fetch product details");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, completeProductDetails, "Product details fetched Successfully")
+    )
+});
+
+const getProductById = asyncHandler(async (req, res) => {
+
+    const _id = req?.params?._id;
+    if (!_id || !mongoose.Types.ObjectId.isValid(_id)) {
+        throw new ApiError(400, "Valid Id required")
+    }
+
+    const completeProductDetails = await Product.findById(_id)
+        .populate("category stock groups")
+        .populate({
+            path: "orders",
+            model: "Order",
+            populate: {
+                path: "items.productId",
+                model: "Product",
+                select: "name fullName images"
+            }
+        })
+        .exec();
+
+    if (!completeProductDetails) {
+        throw new ApiError(409, "Product not found");
     }
 
     return res.status(200).json(
@@ -446,7 +475,6 @@ const markProductInGroup = asyncHandler(async (req, res) => { });
 const deleteProduct = asyncHandler(async (req, res) => { });
 const getProductsByCategory = asyncHandler(async (req, res) => { });
 const getProductsByGroup = asyncHandler(async (req, res) => { });
-const getProductById = asyncHandler(async (req, res) => { });
 
 export {
     createProduct,
