@@ -45,7 +45,7 @@ const createProduct = asyncHandler(async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(brandId)) {
             throw new ApiError(409, `Valid brandId not found`);
         }
-        const foundBrand = await Brand.findById(_id);
+        const foundBrand = await Brand.findById(brandId);
         if (!foundBrand) {
             throw new ApiError(409, `Brand not found`);
         }
@@ -294,7 +294,7 @@ const editProduct = asyncHandler(async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(brandId)) {
             throw new ApiError(409, `Valid brandId not found`);
         }
-        const foundBrand = await Brand.findById(_id);
+        const foundBrand = await Brand.findById(brandId);
         if (!foundBrand) {
             throw new ApiError(409, `Brand not found`);
         }
