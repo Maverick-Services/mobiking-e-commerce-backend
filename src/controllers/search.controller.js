@@ -74,6 +74,7 @@ export const searchProducts = asyncHandler(async (req, res) => {
   const searchKey = req.query?.searchKey?.trim();
   const priceTo = parseFloat(req.query.priceTo);
   const priceFrom = parseFloat(req.query.priceFrom);
+  const orderBy = req.query?.orderBy?.toLowerCase() || "asc"; // ✅ default ascending
 
   if (!query && !searchKey) {
     throw new ApiError(400, "Search query or search key not found");
@@ -106,27 +107,20 @@ export const searchProducts = asyncHandler(async (req, res) => {
     };
   }
 
-  // if (query) {
-  //   const regex = new RegExp(query, "i"); // Case-insensitive partial match
-  //   matchStage = {
-  //     $and: [
-  //       { active: true },
-  //       { $or: [{ name: regex }, { fullName: regex }] }
-  //     ]
-  //   };
-  // } else if (searchKey) {
-  //   const regex = new RegExp(searchKey, "i"); // Case-insensitive partial match
-  //   // console.log(searchKey, regex);
-  //   matchStage = {
-  //     $and: [
-  //       { active: true },
-  //       {
-  //         tags: regex
-  //       }
-  //     ]
-  //   }
-  // }
+  // --- Brand filter (multiple brandIds) ---
+  let brandIds = req.query?.brand;
+  if (brandIds) {
+    // Ensure it's always an array
+    if (!Array.isArray(brandIds)) {
+      brandIds = [brandIds];
+    }
 
+    matchStage.$and.push({
+      brand: { $in: brandIds.map(id => new mongoose.Types.ObjectId(id)) }
+    });
+  }
+
+  // --- Price filter ---
   const priceFilter = {};
   if (!isNaN(priceFrom)) priceFilter.$gte = priceFrom;
   if (!isNaN(priceTo)) priceFilter.$lte = priceTo;
@@ -180,6 +174,9 @@ export const searchProducts = asyncHandler(async (req, res) => {
         foreignField: "_id",
         as: "category"
       }
+    },
+    {
+      $sort: { latestPrice: orderBy === "desc" ? -1 : 1 }
     }
   ];
 
