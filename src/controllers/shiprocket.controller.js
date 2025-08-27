@@ -392,7 +392,7 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
     /* 1) Ignore everything before PICKED UP ---------------------------------- */
     const postPickupStatuses = [
         "PICKED UP", "SHIPPED", "IN TRANSIT", "OUT FOR PICKUP", "DELIVERED",
-        "CANCELLED", "RETURN DELIVERED",                      // late cancellation
+        "CANCELLED", "RETURN DELIVERED", "RETURN ACKNOWLEDGED",                      // late cancellation
         "RTO INITIATED", "RTO IN TRANSIT", "RTO", "RTO ACKNOWLEDGED"
     ];
     if (!postPickupStatuses.includes(srStatus))
@@ -455,11 +455,15 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
         // case "RTO IN TRANSIT":
         case "RTO INITIATED":
             if (!order?.rtoInitiatedAt) upd.rtoInitiatedAt = nowISO;
-            if (order?.status !== "Returned") upd.status = "Returned";
+            // if (order?.status !== "Returned") upd.status = "Returned";
             break;
 
         case "RTO DELIVERED":
             upd.rtoDeliveredAt = nowISO;
+            break;
+
+        case "RETURN DELIVERED":
+            upd.retrunDeliveredAt = nowISO;
             break;
 
         case "RTO ACKNOWLEDGED":
@@ -467,8 +471,8 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
             await restoreStock();
             break;
 
-        case "RETURN DELIVERED":
-            upd.rtoDeliveredAt = nowISO;
+        case "RETURN ACKNOWLEDGED":
+            // upd.rtoDeliveredAt = nowISO;
             upd.status = "Returned";
             await restoreStock();
             break;
