@@ -41,7 +41,11 @@ const addProductInCart = asyncHandler(async (req, res) => {
     }
 
     // 2. Check if cart exists or create
+
+    console.log("cart Id: ", cartId);
+
     let cart = await Cart.findById(cartId);
+    console.log("Existing Cart: ", cart);
     if (!cart) {
         cart = await Cart.create({
             _id: cartId,
@@ -105,7 +109,13 @@ const addProductInCart = asyncHandler(async (req, res) => {
     }
 
     // 4. Populate user with product details
-    const updatedUser = await User.findById(req.user._id)
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            cart: cart?._id
+        },
+        { new: true }
+    )
         .select('-password -refreshToken')
         .populate({
             path: "cart",
