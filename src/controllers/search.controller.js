@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { SubCategory } from "../models/sub_category.model.js";
+import mongoose from "mongoose";
 
 // export const searchProducts = asyncHandler(async (req, res) => {
 //   const query = req.query.q?.trim();
