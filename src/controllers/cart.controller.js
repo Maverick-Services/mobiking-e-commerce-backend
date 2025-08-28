@@ -202,8 +202,23 @@ const removeProductFromCart = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Failed to update cart");
     }
 
+    // 6. Recalculate total cart value
+    const totalCartValue = updatedUser.cart.items.reduce((total, item) => {
+        return total + item.quantity * item.price;
+    }, 0);
+
+    updatedCart.items = items;
+    updatedCart.totalCartValue = totalCartValue;
+    updatedCart = await updatedCart.save();
+
     // 5. Populate user with cart and product details
-    const updatedUser = await User.findById(req.user._id)
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            cart: updatedCart?._id
+        },
+        { new: true }
+    )
         .select('-password -refreshToken')
         .populate({
             path: "cart",
@@ -220,15 +235,6 @@ const removeProductFromCart = asyncHandler(async (req, res) => {
         // .populate("orders")
         .exec();
     //populate orders
-
-    // 6. Recalculate total cart value
-    const totalCartValue = updatedUser.cart.items.reduce((total, item) => {
-        return total + item.quantity * item.price;
-    }, 0);
-
-    updatedCart.items = items;
-    updatedCart.totalCartValue = totalCartValue;
-    updatedCart = await updatedCart.save();
 
     return res.status(200).json(
         new ApiResponse(200, {
