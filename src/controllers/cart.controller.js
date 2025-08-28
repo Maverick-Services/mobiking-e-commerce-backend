@@ -96,8 +96,10 @@ const addProductInCart = asyncHandler(async (req, res) => {
     cart.totalCartValue = items.reduce((total, item) => {
         return total + item.quantity * item.price;
     }, 0);
+    console.log("Cart Before save: ", cart);
 
     const updatedCart = await cart.save();
+    console.log("Cart After save: ", updatedCart);
     if (!updatedCart) {
         throw new ApiError(500, "Failed to update cart");
     }
