@@ -203,13 +203,13 @@ const removeProductFromCart = asyncHandler(async (req, res) => {
     }
 
     // 6. Recalculate total cart value
-    const totalCartValue = updatedUser.cart.items.reduce((total, item) => {
-        return total + item.quantity * item.price;
-    }, 0);
+    // const totalCartValue = updatedCart.items.reduce((total, item) => {
+    //     return total + item.quantity * item.price;
+    // }, 0);
 
-    updatedCart.items = items;
-    updatedCart.totalCartValue = totalCartValue;
-    updatedCart = await updatedCart.save();
+    // // updatedCart.items = items;
+    // updatedCart.totalCartValue = totalCartValue;
+    // updatedCart = await updatedCart.save();
 
     // 5. Populate user with cart and product details
     const updatedUser = await User.findByIdAndUpdate(
