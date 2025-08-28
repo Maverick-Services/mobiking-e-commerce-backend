@@ -121,6 +121,8 @@ const addProductInCart = asyncHandler(async (req, res) => {
         .exec();
     //populate orders
 
+    console.log("User", updatedUser);
+
     return res.status(201).json(
         new ApiResponse(201, {
             user: updatedUser
