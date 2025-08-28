@@ -754,11 +754,15 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
         await newOrder.save({ session });
         // console.log("New Order 2:", newOrder);
 
+        // console.log("Old Cart:", cart);
+
+        // Create new cart, update user with new cart and delete old cart
         const newCart = new Cart({
             userId: cart.userId,
             items: cart.items,
             totalCartValue: cart.totalCartValue
         });
+        // console.log("New Cart:", newCart);
 
         await newCart.save({ session, timestamps: false });
 
@@ -783,6 +787,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             .populate("orders")
             .exec();
 
+        // Deleting Old Cart
         await Cart.findByIdAndDelete(cart._id, { session });
 
         return res.status(201).json(
@@ -1088,7 +1093,9 @@ const verifyPayment = async (req, res) => {
         const order = await Order.findById(dbOrderId).populate('items.productId');
         if (!order) throw new ApiError(404, 'Order not found.');
 
-        const cart = await Cart.findOne({ userId: order.userId });
+        // const cart = await Cart.findOne({ userId: order.userId });
+        const cart = await Cart.findById(req?.user?.cart);
+        // console.log("Cart Before:", cart);
 
         let updatedUser = null;
 
@@ -1108,6 +1115,7 @@ const verifyPayment = async (req, res) => {
                     ...new Set(order.items.map(it => it.productId._id.toString()))
                 ];
 
+                // Update Stock
                 for (const item of order.items) {
                     await Product.updateOne(
                         {
@@ -1131,10 +1139,13 @@ const verifyPayment = async (req, res) => {
                     { session }
                 );
 
+                // If stock update successfull then clear cart
                 cart.items = [];
                 cart.totalCartValue = 0;
                 await cart.save({ session });
+                // console.log("Cart After:", cart);
 
+                // update the user and return the user details
                 updatedUser = await User.findByIdAndUpdate(
                     order.userId,
                     { $push: { orders: order._id } },
