@@ -103,7 +103,7 @@ export const verifyOtp = asyncHandler(async (req, res, next) => {
 
     if (!mobile || !otp) throw new ApiError(400, 'Mobile and OTP code required');
 
-    const response = await OTP.find({ mobile }).sort({ createdAt: -1 }).limit(1);
+    const response = await OTP.find({ mobile, code: otp }).sort({ createdAt: -1 }).limit(1);
 
     if (response.length === 0) throw new ApiError(404, 'OTP not found');
 

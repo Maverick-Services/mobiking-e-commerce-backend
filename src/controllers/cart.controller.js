@@ -6,7 +6,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { Product } from './../models/product.model.js';
 
 const addProductInCart = asyncHandler(async (req, res) => {
-    const {
+    let {
         cartId,
         productId,
         variantName,
@@ -17,9 +17,12 @@ const addProductInCart = asyncHandler(async (req, res) => {
     const parsedQuantity = parseInt(quantity);
     const qtyToAdd = (!quantity || isNaN(parsedQuantity) || parsedQuantity <= 0) ? 1 : parsedQuantity;
 
-    if (!cartId || !productId || !variantName) {
-        throw new ApiError(400, "cartId, productId, and variantName are required");
+    if (!productId || !variantName) {
+        throw new ApiError(400, "ProductId, and variantName are required");
     }
+
+    // Assign the cart Id saved in user to cartId
+    cartId = req?.user?.cart;
 
     // 1. Fetch product with category
     const product = await Product.findById(productId)
@@ -41,20 +44,25 @@ const addProductInCart = asyncHandler(async (req, res) => {
     }
 
     // 2. Check if cart exists or create
+    // console.log("cart Id: ", cartId);
 
-    console.log("cart Id: ", cartId);
-
-    let cart = await Cart.findById(cartId);
-    console.log("Existing Cart: ", cart);
-    if (!cart) {
+    let cart = null;
+    if (!cartId) {
+        const allCarts = await Cart.find({ userId: req?.user?._id });
+        for (let c of allCarts) {
+            await Cart.findByIdAndDelete(c?._id);
+        }
         cart = await Cart.create({
-            _id: cartId,
             userId: req.user._id,
             items: []
         });
+        // console.log("New Cart: ", cart);
+    } else {
+        cart = await Cart.findById(cartId);
+        // console.log("Existing Cart: ", cart);
     }
 
-    let items = cart.items || [];
+    let items = cart?.items || [];
     const existingIndex = items.findIndex(
         item =>
             item.productId.toString() === productId &&
@@ -100,10 +108,10 @@ const addProductInCart = asyncHandler(async (req, res) => {
     cart.totalCartValue = items.reduce((total, item) => {
         return total + item.quantity * item.price;
     }, 0);
-    console.log("Cart Before save: ", cart);
+    // console.log("Cart Before save: ", cart);
 
     const updatedCart = await cart.save();
-    console.log("Cart After save: ", updatedCart);
+    // console.log("Cart After save: ", updatedCart);
     if (!updatedCart) {
         throw new ApiError(500, "Failed to update cart");
     }
@@ -112,7 +120,7 @@ const addProductInCart = asyncHandler(async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
         req.user._id,
         {
-            cart: cart?._id
+            cart: updatedCart?._id
         },
         { new: true }
     )
@@ -133,7 +141,7 @@ const addProductInCart = asyncHandler(async (req, res) => {
         .exec();
     //populate orders
 
-    console.log("User", updatedUser);
+    // console.log("User", updatedUser);
 
     return res.status(201).json(
         new ApiResponse(201, {
@@ -143,14 +151,30 @@ const addProductInCart = asyncHandler(async (req, res) => {
 });
 
 const removeProductFromCart = asyncHandler(async (req, res) => {
-    const { cartId, productId, variantName } = req.body;
+    let { cartId, productId, variantName } = req.body;
 
-    if (!cartId || !productId || !variantName) {
+    if (!productId || !variantName) {
         throw new ApiError(400, "cartId, productId, and variantName are required");
     }
 
+    cartId = req?.user?.cart;
+    let cart = null;
+    if (!cartId) {
+        const allCarts = await Cart.find({ userId: req?.user?._id });
+        for (let c of allCarts) {
+            await Cart.findByIdAndDelete(c?._id);
+        }
+        cart = await Cart.create({
+            userId: req.user._id,
+            items: []
+        });
+        // console.log("New Cart: ", cart);
+    } else {
+        cart = await Cart.findById(cartId);
+        // console.log("Existing Cart: ", cart);
+    }
+
     // 1. Fetch the cart
-    const cart = await Cart.findById(cartId);
     if (!cart) {
         throw new ApiError(404, "Cart not found");
     }
