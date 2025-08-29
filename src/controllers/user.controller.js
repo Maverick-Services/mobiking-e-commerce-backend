@@ -85,9 +85,31 @@ const generateAccessAndRefereshTokens = async (userId) => {
         const refreshToken = user.generateRefreshToken()
 
         user.refreshToken = refreshToken
-        await user.save({ validateBeforeSave: false })
+        // await user.save({ validateBeforeSave: false })
 
-        return { accessToken, refreshToken }
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            {
+                refreshToken: refreshToken
+            },
+            { new: true }
+        ).populate({
+            path: "cart",
+            populate: {
+                path: "items.productId",
+                model: "Product",
+                populate: {
+                    path: "category",  // This is the key part
+                    model: "SubCategory"
+                }
+            }
+        })
+            .populate("address")
+            .populate("wishlist")
+            .exec();
+
+
+        return { accessToken, refreshToken, updatedUser }
 
     } catch (error) {
         throw new ApiError(500, "Something went wrong while generating referesh and access token")
@@ -321,8 +343,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(401, "Invalid refresh token")
         }
 
-        console.log("refresh tokens: ", incomingRefreshToken, user?.refreshToken);
-
         if (incomingRefreshToken != user?.refreshToken) {
             throw new ApiError(401, "Refresh token is expired or used")
 
@@ -333,7 +353,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             secure: true
         }
 
-        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefereshTokens(user._id)
+        const { accessToken, refreshToken: newRefreshToken, updatedUser } = await generateAccessAndRefereshTokens(user._id)
 
         return res
             .status(200)
@@ -342,7 +362,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             .json(
                 new ApiResponse(
                     200,
-                    { accessToken, refreshToken: newRefreshToken },
+                    { accessToken, refreshToken: newRefreshToken, updatedUser },
                     "Access token refreshed"
                 )
             )
