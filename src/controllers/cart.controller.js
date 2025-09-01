@@ -39,7 +39,7 @@ const addProductInCart = asyncHandler(async (req, res) => {
     }
 
     const latestPrice = product.sellingPrice?.[product.sellingPrice.length - 1]?.price;
-    if (!latestPrice || isNaN(latestPrice)) {
+    if (latestPrice == undefined || latestPrice == null || isNaN(latestPrice)) {
         throw new ApiError(400, "No valid price found for product");
     }
 
