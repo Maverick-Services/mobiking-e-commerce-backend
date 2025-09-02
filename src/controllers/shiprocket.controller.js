@@ -410,7 +410,7 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
     /* 1) Ignore everything before PICKED UP ---------------------------------- */
     const postPickupStatuses = [
         "PICKED UP", "SHIPPED", "IN TRANSIT", "OUT FOR PICKUP", "DELIVERED",
-        "CANCELLED", "RETURN DELIVERED", "RETURN ACKNOWLEDGED",                      // late cancellation
+        "CANCELED", "CANCELLED", "RETURN DELIVERED", "RETURN ACKNOWLEDGED",                      // late cancellation
         "RTO INITIATED", "RTO IN TRANSIT", "RTO", "RTO ACKNOWLEDGED"
     ];
     if (!postPickupStatuses.includes(srStatus))
@@ -460,6 +460,13 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
             break;
 
         /* Late cancellation *after* pickup */
+        case "CANCELED":
+            if (["PICKED UP", "SHIPPED", "IN TRANSIT"].includes(prevShip) || order?.status != "Cancelled") {
+                upd.status = "Cancelled";
+                upd.reason = "Cancelled by courier after pickup";
+                await restoreStock();
+            }
+            break;
         case "CANCELLED":
             if (["PICKED UP", "SHIPPED", "IN TRANSIT"].includes(prevShip) || order?.status != "Cancelled") {
                 upd.status = "Cancelled";
