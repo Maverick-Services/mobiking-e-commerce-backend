@@ -390,8 +390,12 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
     const order = await Order.findOne({
         $or: [
             { awbCode: p?.awb },
-            { shiprocketOrderId: String(p?.order_id || p?.sr_order_id) },
+            { _id: String(p?.order_id) },
+            { _id: String(p?.sr_order_id) },
+            { shiprocketOrderId: String(p?.order_id) },
+            { shiprocketOrderId: String(p?.sr_order_id) },
             { "returnData.order_id": String(p?.order_id) },  // match return order_id
+            { "returnData.order_id": String(p?.sr_order_id) },  // match return order_id
             { "returnData.awb_code": p?.awb }
         ],
     });
