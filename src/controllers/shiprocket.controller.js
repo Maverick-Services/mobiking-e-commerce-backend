@@ -410,7 +410,7 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
                     { _id: p?.order_id },
                 ],
             });
-        } else if (mongoose.Types.ObjectId.isValid(p?.sr_order_id)) {
+        } else if (mongoose.Types.ObjectId.isValid(String(p?.sr_order_id))) {
             order = await Order.findOne({
                 $or: [
                     { awbCode: p?.awb },
