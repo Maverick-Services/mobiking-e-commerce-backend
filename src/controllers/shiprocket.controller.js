@@ -34,7 +34,7 @@ const assignBestCourier = async (req, res, next) => {
             { shipment_id: shipmentId, courier_id: courierId },
             { headers: { Authorization: `Bearer ${token}` } }
         );
-
+        console.log("Courier Assign data: ", data);
         let awbCode = null;
         let courierName = null;
 
@@ -61,6 +61,7 @@ const assignBestCourier = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${token}` } }
         );
         const shipData = response?.data?.data;
+        console.log("Pickup Auto Schedule check data: ", shipData);
 
         //if pickupup auto scheduled then update details in db
         let pickupInfo = null;

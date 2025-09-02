@@ -2015,8 +2015,8 @@ const createdCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
-        order.reason = reason;
-        const updatedRequestArr = updateRequestStatus(order?.requests, req?.reason);
+        order.reason = req?.body?.reason;
+        const updatedRequestArr = updateRequestStatus(order?.requests, req?.body?.reason);
         console.log("Request Array:", updatedRequestArr);
         order.requests = updatedRequestArr;
         await order.save();
@@ -2041,8 +2041,8 @@ const awbCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
-        order.reason = reason;
-        const updatedRequestArr = updateRequestStatus(order?.requests, req?.reason);
+        order.reason = req?.body?.reason;
+        const updatedRequestArr = updateRequestStatus(order?.requests, req?.body?.reason);
         console.log("Request Array:", updatedRequestArr);
         order.requests = updatedRequestArr;
         await order.save();
@@ -2080,8 +2080,8 @@ const postPickupCancel = async (req, res, next) => {
             { headers: { Authorization: `Bearer ${req?.shiprocketToken}` } }
         );
         order.status = 'Cancelled';
-        order.reason = reason;
-        const updatedRequestArr = updateRequestStatus(order?.requests, req?.reason);
+        order.reason = req?.body?.reason;
+        const updatedRequestArr = updateRequestStatus(order?.requests, req?.body?.reason);
         console.log("Request Array:", updatedRequestArr);
         order.requests = updatedRequestArr;
         await order.save();
@@ -2104,7 +2104,7 @@ const inTransitCancel = async (req, res, next) => {
     const inTransitStates = ['Shipped', 'In Transit', 'Picked Up'];
     if (inTransitStates.includes(order.shippingStatus)) {
         order.status = 'Cancelled';
-        order.reason = reason;
+        order.reason = req?.body?.reason;
         await order.save();
         // stock to be adjusted on return processing
         return res.json({ message: 'Order marked cancelled; stock will restore upon return' });
