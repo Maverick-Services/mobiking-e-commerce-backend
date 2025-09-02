@@ -442,7 +442,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
         const foundAddress = await Address.findById(addressId);
 
         const addressDetails = {
-            address: `${foundAddress?.street}, ${foundAddress?.street2}, ${foundAddress?.city}, ${foundAddress?.state}, ${foundAddress?.pinCode}`,
+            address: `${foundAddress?.street}, ${foundAddress?.street2 || ""}, ${foundAddress?.city}, ${foundAddress?.state}, ${foundAddress?.pinCode}`,
             address2: foundAddress?.street2,
             city: foundAddress?.city,
             state: foundAddress?.state,
@@ -676,7 +676,7 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
         const foundAddress = await Address.findById(addressId);
 
         const addressDetails = {
-            address: `${foundAddress?.street}, ${foundAddress?.street2}, ${foundAddress?.city}, ${foundAddress?.state}, ${foundAddress?.pinCode}`,
+            address: `${foundAddress?.street}, ${foundAddress?.street2 || ""}, ${foundAddress?.city}, ${foundAddress?.state}, ${foundAddress?.pinCode}`,
             // address: foundAddress?.street,
             address2: foundAddress?.street2,
             city: foundAddress?.city,
@@ -1292,7 +1292,7 @@ const acceptOrder = asyncHandler(async (req, res, next) => {
             billing_pincode: foundOrder?.pincode || foundOrder.addressId?.pinCode,
             billing_state: foundOrder?.state || foundOrder.addressId?.state,
             billing_country: foundOrder?.country || "India",
-            billing_email: foundOrder?.email ? foundOrder.email : "",
+            // billing_email: foundOrder?.email ? foundOrder.email : "",
             billing_phone: foundOrder?.phoneNo,
             shipping_is_billing: true,
             order_items,                                   // ← variant‑aware items
