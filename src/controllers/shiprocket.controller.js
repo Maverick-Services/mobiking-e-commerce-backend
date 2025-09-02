@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Product } from "../models/product.model.js";
+import mongoose from "mongoose";
 
 // This function should be used right after order creation in Shiprocket
 // controllers/assignBestCourier.js
@@ -387,11 +388,11 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
     const srStatus = (p?.shipment_status || p?.current_status || "").toUpperCase();
 
     /* 2) Locate order -------------------------------------------------------- */
-    const order = await Order.findOne({
+    let order = await Order.findOne({
         $or: [
             { awbCode: p?.awb },
-            { _id: String(p?.order_id) },
-            { _id: String(p?.sr_order_id) },
+            // { _id: String(p?.order_id) },
+            // { _id: String(p?.sr_order_id) },
             { shiprocketOrderId: String(p?.order_id) },
             { shiprocketOrderId: String(p?.sr_order_id) },
             { "returnData.order_id": String(p?.order_id) },  // match return order_id
@@ -400,6 +401,25 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
         ],
     });
     console.log("Found Order", order);
+    if (!order) {
+
+        if (mongoose.Types.ObjectId.isValid(p?.order_id)) {
+            order = await Order.findOne({
+                $or: [
+                    { awbCode: p?.awb },
+                    { _id: p?.order_id },
+                ],
+            });
+        } else if (mongoose.Types.ObjectId.isValid(p?.sr_order_id)) {
+            order = await Order.findOne({
+                $or: [
+                    { awbCode: p?.awb },
+                    { _id: String(p?.sr_order_id) },
+                ],
+            });
+        }
+
+    }
     if (!order) return res.status(200).json({ success: true, unknown: true });
     console.log("After Found Order", order);
 
