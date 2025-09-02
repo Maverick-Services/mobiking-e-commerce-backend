@@ -54,7 +54,22 @@ const assignBestCourier = async (req, res, next) => {
             });
         }
 
+        // Update DB after courier assigned
+        await Order.findByIdAndUpdate(
+            req.order._id,
+            {
+                // ...pickupInfo,
+                awbCode,
+                courierName,
+                courierAssignedAt: new Date(),
+                // status: 'Accepted',
+                // status: 'Shipped',
+                shippingStatus: "Courier Assigned",
+            },
+            { new: true }
+        );
 
+        console.log("Shiprocket order Id: ", shiprocketOrderId);
         // Call Shiprocket API to get full order details to check if pickup is auto scheduled
         const response = await axios.get(
             `https://apiv2.shiprocket.in/v1/external/orders/show/${shiprocketOrderId}`,
@@ -79,9 +94,9 @@ const assignBestCourier = async (req, res, next) => {
             req.order._id,
             {
                 ...pickupInfo,
-                awbCode,
-                courierName,
-                courierAssignedAt: new Date(),
+                // awbCode,
+                // courierName,
+                // courierAssignedAt: new Date(),
                 // status: 'Accepted',
                 status: 'Shipped',
                 shippingStatus: pickupInfo ? pickupInfo?.shippingStatus : "Courier Assigned",
@@ -380,7 +395,9 @@ const shiprocketWebhook = asyncHandler(async (req, res) => {
             { "returnData.awb_code": p?.awb }
         ],
     });
+    console.log("Found Order", order);
     if (!order) return res.status(200).json({ success: true, unknown: true });
+    console.log("After Found Order", order);
 
     /* 4) Always overwrite scans if provided ---------------------------------- */
     if (Array.isArray(p?.scans) && p?.scans?.length) {
