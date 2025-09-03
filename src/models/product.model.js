@@ -100,6 +100,16 @@ const productSchema = new mongoose.Schema({
             message: props => `${props.value} is not valid. Must have exactly 3 decimal places.`
         }
     },
+    rating: {
+        type: Number,
+        min: 0,
+        max: 5,
+        default: () => (Math.random() * (4.9 - 3.8) + 3.8).toFixed(1) // random between 3.8 - 4.9
+    },
+    reviewCount: {
+        type: Number,
+        default: () => Math.floor(Math.random() * (1000 - 100 + 1) + 100) // random between 100 - 1000
+    },
     brand: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Brand',
