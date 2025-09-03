@@ -408,6 +408,7 @@ const createCodOrder = asyncHandler(async (req, res) => {
             }
         }
 
+        cartId = req?.user?.cart;
         if (
             !userId || !address || !cartId ||
             !name || !phoneNo ||
@@ -643,8 +644,9 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
             }
         }
 
+        cartId = req?.user?.cart;
         if (
-            !userId || !cartId || !name || !phoneNo ||
+            !userId || !name || !phoneNo || !cartId ||
             !orderAmount || !subtotal ||
             // !gst || 
             !address
