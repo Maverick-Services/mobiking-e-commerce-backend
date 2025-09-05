@@ -168,6 +168,13 @@ const getHomeLayout = asyncHandler(async (req, res) => {
                 model: 'SubCategory'
             }
         })
+        .populate({
+            path: 'groups',
+            populate: {
+                path: 'products',
+                model: 'Product'
+            }
+        })
         .populate("categories")
         .exec();
 
