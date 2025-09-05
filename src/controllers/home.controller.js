@@ -161,23 +161,13 @@ const getHomeLayout = asyncHandler(async (req, res) => {
         active: true
     }).sort({ createdAt: -1 })
         .populate('groups')
-        .populate([
-            {
-                path: 'groups',
-                populate: {
-                    path: 'products',
-                    model: 'Product',
-                    populate: {
-                        path: 'category',
-                        model: 'SubCategory'
-                    }
-                }
-            },
-            {
+        .populate({
+            path: 'groups',
+            populate: {
                 path: 'categories',
                 model: 'SubCategory'
             }
-        ])
+        })
         .populate("categories")
         .exec();
 
