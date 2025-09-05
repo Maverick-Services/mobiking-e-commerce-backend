@@ -840,7 +840,15 @@ const reviewOrder = asyncHandler(async (req, res) => {
                 isReviewed: true,
             },
             { new: true }
-        );
+        )
+            .populate({ path: "userId", select: "-password -refreshToken" })
+            .populate({
+                path: "items.productId",
+                model: "Product",
+                // populate: { path: "category", model: "SubCategory" },
+            })
+            .populate("addressId")
+            .exec();;
 
         return res.status(201).json(
             new ApiResponse(201, { updatedOrder }, "Review added successfully")
@@ -1850,10 +1858,10 @@ const getAllOrdersByUser = asyncHandler(async (req, res) => {
         .populate({
             path: "items.productId",
             model: "Product",
-            populate: {
-                path: "category",  // This is the key part
-                model: "SubCategory"
-            }
+            // populate: {
+            //     path: "category",  // This is the key part
+            //     model: "SubCategory"
+            // }
         })
         .populate({
             path: "query",
