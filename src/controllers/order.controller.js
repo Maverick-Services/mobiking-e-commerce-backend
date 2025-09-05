@@ -811,6 +811,47 @@ const createOnlineOrder = asyncHandler(async (req, res) => {
     }
 });
 
+const reviewOrder = asyncHandler(async (req, res) => {
+    try {
+        const { orderId } = req?.body;
+
+        if (
+            !orderId
+        ) {
+            throw new ApiError(400, 'Order Id not found.');
+        }
+
+        const foundOrder = await Order.findById(orderId);
+        if (!foundOrder) {
+            throw new ApiError(400, 'Order not found.');
+        }
+
+        if (foundOrder?.isReviewed) {
+            throw new ApiError(409, 'Order is already reviewed');
+        }
+
+        if (foundOrder?.status != 'Delivered') {
+            throw new ApiError(409, 'Order is not delivered yet');
+        }
+
+        const updatedOrder = await Order.findByIdAndUpdate(
+            orderId,
+            {
+                isReviewed: true,
+            },
+            { new: true }
+        );
+
+        return res.status(201).json(
+            new ApiResponse(201, { updatedOrder }, "Review added successfully")
+        );
+
+    } catch (err) {
+        console.error('Error adding review:', err?.message);
+        return res.status(500).json({ message: err?.message || 'Internal server error' });
+    }
+});
+
 const updateOrder = asyncHandler(async (req, res) => {
     try {
         const orderId = req?.params?._id;
@@ -2263,6 +2304,7 @@ export {
     createManualOrder,
     createCodOrder,
     createOnlineOrder,
+    reviewOrder,
     updateOrder,
     addItemQuantityInOrder,
     removeItemQuantityInOrder,

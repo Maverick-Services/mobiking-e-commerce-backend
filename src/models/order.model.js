@@ -79,6 +79,10 @@ const orderSchema = new mongoose.Schema(
         paymentDate: {
             type: Date,
         },
+        isReviewed: {
+            type: Boolean,
+            default: false
+        },
 
         /****************  SHIPROCKET FIELDS  *****************/
         shipmentId: String,  // Shiprocket shipment_id

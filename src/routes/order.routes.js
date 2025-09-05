@@ -25,7 +25,8 @@ import {
     getFilteredOrdersByDate,
     returnOrder,
     getOrdersByRequestType,
-    createManualOrder
+    createManualOrder,
+    reviewOrder
 } from "../controllers/order.controller.js";
 import {
     assignBestCourier,
@@ -45,6 +46,7 @@ router.route("/cod/new").post(verifyJWT, createCodOrder);
 router.route("/online/new").post(verifyJWT, createOnlineOrder);
 router.route("/online/verify").post(verifyJWT, verifyPayment);
 router.route("/user").get(verifyJWT, getAllOrdersByUser);
+router.route("/review").post(verifyJWT, reviewOrder);
 router.route("/:_id").put(verifyJWT, updateOrder);
 router.route("/items/add").post(verifyJWT, addItemQuantityInOrder);
 router.route("/items/remove").post(verifyJWT, removeItemQuantityInOrder);
