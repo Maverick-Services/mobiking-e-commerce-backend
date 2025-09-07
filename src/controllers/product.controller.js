@@ -17,7 +17,8 @@ const createProduct = asyncHandler(async (req, res) => {
         descriptionPoints,
         keyInformation,
         basePrice, regularPrice,
-        sku, hsn, gst
+        sku, hsn, gst,
+        rating, reviewCount
     } = req.body;
 
     //TODO: Add Images to it
@@ -80,7 +81,8 @@ const createProduct = asyncHandler(async (req, res) => {
         descriptionPoints,
         sku, hsn, gst,
         basePrice: basePrice || 0,
-        regularPrice: regularPrice || 0
+        regularPrice: regularPrice || 0,
+        rating, reviewCount
     });
     if (!newProduct) {
         throw new ApiError(409, "Could not create product");
@@ -265,7 +267,8 @@ const editProduct = asyncHandler(async (req, res) => {
         descriptionPoints,
         keyInformation, images,
         basePrice, regularPrice,
-        hsn, sku, gst
+        hsn, sku, gst,
+        rating, reviewCount
     } = req.body;
 
     //TODO: Add Images to it
@@ -326,7 +329,8 @@ const editProduct = asyncHandler(async (req, res) => {
             regularPrice: regularPrice || foundProduct?.regularPrice || 0,
             category: categoryId,
             images: images ? images : foundProduct?.images,
-            tags: tags ? tags : foundProduct?.tags
+            tags: tags ? tags : foundProduct?.tags,
+            rating, reviewCount
         },
         { new: true }
     ).populate("category stock groups").exec(); //populate order, group here
