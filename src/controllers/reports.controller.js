@@ -398,7 +398,8 @@ export const fetchModelColumns = asyncHandler(async (req, res) => {
     query = query.populate(field);
   }
 
-  const data = await query.limit(100).exec(); // optional limit
+  // const data = await query.limit(100).exec(); // optional limit
+  const data = await query.exec(); // optional limit
 
   return res
     .status(200)
